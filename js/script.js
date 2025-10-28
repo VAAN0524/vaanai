@@ -91,7 +91,7 @@ function initMessageSystem() {
     const messageList = document.getElementById('messageList');
     const tickerContent = document.getElementById('tickerContent');
     const nameInput = document.getElementById('name');
-    const messageInput = document.getElementById('message');
+    const messageInput = document.getElementById('messageText');
 
     if (!messageForm || !messageList || !tickerContent || !nameInput || !messageInput) {
         console.error('❌ 找不到必要的DOM元素:', {
@@ -499,9 +499,9 @@ function initMessageSystem() {
     // 字符计数器功能
     function initCharCounters() {
         const nameInput = document.getElementById('name');
-        const messageInput = document.getElementById('message');
+        const messageInput = document.getElementById('messageText');
         const nameCounter = document.getElementById('nameCounter');
-        const messageCounter = document.getElementById('messageCounter');
+        const messageCounter = document.getElementById('messageTextCounter');
 
         console.log('字符计数器初始化:', {
             nameInput: !!nameInput,
