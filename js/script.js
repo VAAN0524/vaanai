@@ -17,27 +17,70 @@ document.addEventListener('DOMContentLoaded', function() {
     window.addEventListener('scroll', handleScroll);
 });
 
-// 创建背景粒子
+// 创建炫酷背景粒子
 function createParticles() {
     const particlesContainer = document.getElementById('particles');
     if (!particlesContainer) return;
 
-    const particleCount = 30;
-    
+    const particleCount = 50;
+    const particleTypes = ['particle-1', 'particle-2', 'particle-3', 'particle-glow'];
+
     for (let i = 0; i < particleCount; i++) {
         const particle = document.createElement('div');
-        particle.className = 'particle';
-        
-        const size = Math.random() * 4 + 2;
+        const type = particleTypes[Math.floor(Math.random() * particleTypes.length)];
+        particle.className = `particle ${type}`;
+
+        // 随机位置和大小
+        const size = Math.random() * 3 + 1;
         particle.style.width = size + 'px';
         particle.style.height = size + 'px';
         particle.style.left = Math.random() * 100 + '%';
         particle.style.top = Math.random() * 100 + '%';
-        particle.style.animationDuration = (Math.random() * 10 + 15) + 's';
-        particle.style.animationDelay = Math.random() * 5 + 's';
-        
+        particle.style.animationDelay = Math.random() * 10 + 's';
+
+        // 添加随机动画时长
+        if (type === 'particle-1') {
+            particle.style.animationDuration = (Math.random() * 10 + 20) + 's';
+        } else if (type === 'particle-2') {
+            particle.style.animationDuration = (Math.random() * 8 + 15) + 's';
+        } else if (type === 'particle-3') {
+            particle.style.animationDuration = (Math.random() * 12 + 25) + 's';
+        } else {
+            particle.style.animationDuration = (Math.random() * 15 + 30) + 's';
+        }
+
+        // 添加发光效果
+        if (type === 'particle-glow') {
+            particle.style.boxShadow = `0 0 ${Math.random() * 15 + 10}px rgba(102, 126, 234, ${Math.random() * 0.5 + 0.3})`;
+        }
+
         particlesContainer.appendChild(particle);
     }
+
+    // 添加鼠标交互效果
+    document.addEventListener('mousemove', (e) => {
+        const mouseX = e.clientX;
+        const mouseY = e.clientY;
+        const particles = document.querySelectorAll('.particle');
+
+        particles.forEach((particle, index) => {
+            if (index % 3 === 0) { // 只影响部分粒子，避免性能问题
+                const rect = particle.getBoundingClientRect();
+                const particleX = rect.left + rect.width / 2;
+                const particleY = rect.top + rect.height / 2;
+                const distance = Math.sqrt(Math.pow(mouseX - particleX, 2) + Math.pow(mouseY - particleY, 2));
+
+                if (distance < 150) {
+                    const force = (150 - distance) / 150;
+                    const angle = Math.atan2(particleY - mouseY, particleX - mouseX);
+                    const moveX = Math.cos(angle) * force * 20;
+                    const moveY = Math.sin(angle) * force * 20;
+
+                    particle.style.transform = `translate(${moveX}px, ${moveY}px) scale(${1 + force * 0.5})`;
+                }
+            }
+        });
+    });
 }
 
 // 初始化留言系统
