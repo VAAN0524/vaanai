@@ -327,8 +327,8 @@ function initMessageSystem() {
         e.preventDefault();
         console.log('表单提交事件触发');
 
-        const name = nameInput && nameInput.value ? nameInput.value.trim() : '';
-        const text = messageInput && messageInput.value ? messageInput.value.trim() : '';
+        const name = nameInput && (nameInput.value || nameInput.textContent) ? String(nameInput.value || nameInput.textContent).trim() : '';
+        const text = messageInput && (messageInput.value || messageInput.textContent) ? String(messageInput.value || messageInput.textContent).trim() : '';
         const submitButton = messageForm.querySelector('button[type="submit"]');
 
         console.log('📝 输入内容:', { name, text });
@@ -512,7 +512,8 @@ function initMessageSystem() {
 
         if (nameInput && nameCounter) {
             function updateNameCounter() {
-                const count = nameInput.value ? nameInput.value.length : 0;
+                const value = nameInput.value || nameInput.textContent || '';
+                const count = value.length;
                 nameCounter.textContent = count;
 
                 if (count >= 20) {
@@ -533,7 +534,8 @@ function initMessageSystem() {
 
         if (messageInput && messageCounter) {
             function updateMessageCounter() {
-                const count = messageInput.value ? messageInput.value.length : 0;
+                const value = messageInput.value || messageInput.textContent || '';
+                const count = value.length;
                 messageCounter.textContent = count;
 
                 if (count >= 500) {
