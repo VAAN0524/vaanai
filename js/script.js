@@ -327,9 +327,9 @@ function initMessageSystem() {
         e.preventDefault();
         console.log('表单提交事件触发');
 
-        const name = nameInput.value.trim();
-        const text = messageInput.value.trim();
-        const submitButton = messageForm.querySelector('.submit-button');
+        const name = nameInput && nameInput.value ? nameInput.value.trim() : '';
+        const text = messageInput && messageInput.value ? messageInput.value.trim() : '';
+        const submitButton = messageForm.querySelector('button[type="submit"]');
 
         console.log('📝 输入内容:', { name, text });
 
@@ -407,8 +407,12 @@ function initMessageSystem() {
             console.log('留言已保存到localStorage');
 
             // 清空输入框
-            nameInput.value = '';
-            messageInput.value = '';
+            if (nameInput) nameInput.value = '';
+            if (messageInput) messageInput.value = '';
+
+            // 触发计数器更新
+            if (nameInput) nameInput.dispatchEvent(new Event('input'));
+            if (messageInput) messageInput.dispatchEvent(new Event('input'));
 
             // 重新渲染
             renderMessages();
@@ -499,9 +503,16 @@ function initMessageSystem() {
         const nameCounter = document.getElementById('nameCounter');
         const messageCounter = document.getElementById('messageCounter');
 
+        console.log('字符计数器初始化:', {
+            nameInput: !!nameInput,
+            messageInput: !!messageInput,
+            nameCounter: !!nameCounter,
+            messageCounter: !!messageCounter
+        });
+
         if (nameInput && nameCounter) {
             function updateNameCounter() {
-                const count = nameInput.value.length;
+                const count = nameInput.value ? nameInput.value.length : 0;
                 nameCounter.textContent = count;
 
                 if (count >= 20) {
@@ -509,17 +520,20 @@ function initMessageSystem() {
                 } else if (count >= 15) {
                     nameCounter.style.color = '#f59e0b';
                 } else {
-                    nameCounter.style.color = '#6b7280';
+                    nameCounter.style.color = '#a0aec0';
                 }
             }
 
             nameInput.addEventListener('input', updateNameCounter);
             updateNameCounter(); // 初始化计数
+            console.log('昵称计数器已初始化');
+        } else {
+            console.warn('昵称计数器元素未找到');
         }
 
         if (messageInput && messageCounter) {
             function updateMessageCounter() {
-                const count = messageInput.value.length;
+                const count = messageInput.value ? messageInput.value.length : 0;
                 messageCounter.textContent = count;
 
                 if (count >= 500) {
@@ -527,12 +541,15 @@ function initMessageSystem() {
                 } else if (count >= 400) {
                     messageCounter.style.color = '#f59e0b';
                 } else {
-                    messageCounter.style.color = '#6b7280';
+                    messageCounter.style.color = '#a0aec0';
                 }
             }
 
             messageInput.addEventListener('input', updateMessageCounter);
             updateMessageCounter(); // 初始化计数
+            console.log('留言计数器已初始化');
+        } else {
+            console.warn('留言计数器元素未找到');
         }
     }
 
