@@ -10,10 +10,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // 初始化所有功能
     createParticles();
+    initRippleSystem();
     initMessageSystem();
     initScrollEffects();
     initSmoothScroll();
-    
+
     window.addEventListener('scroll', handleScroll);
 });
 
@@ -81,6 +82,181 @@ function createParticles() {
             }
         });
     });
+}
+
+// 初始化水波纹系统
+function initRippleSystem() {
+    console.log('🌊 初始化水波纹系统...');
+
+    // 创建水波纹容器
+    const rippleContainer = document.createElement('div');
+    rippleContainer.className = 'ripple-container';
+    rippleContainer.id = 'rippleContainer';
+    document.body.appendChild(rippleContainer);
+
+    // 存储所有活动的水波纹
+    const activeRipples = [];
+
+    // 波形参数（符合物理学定律）
+    const WAVE_SPEED = 150; // 波速 (像素/秒)
+    const DAMPING = 0.95; // 阻尼系数
+    const MAX_RADIUS = 300; // 最大半径
+    const INTERFERENCE_STRENGTH = 0.3; // 波干涉强度
+
+    // 创建水波纹
+    function createRipple(x, y) {
+        const ripple = document.createElement('div');
+        ripple.className = 'ripple';
+
+        // 设置初始位置和大小
+        const initialSize = 10;
+        ripple.style.width = initialSize + 'px';
+        ripple.style.height = initialSize + 'px';
+        ripple.style.left = (x - initialSize / 2) + 'px';
+        ripple.style.top = (y - initialSize / 2) + 'px';
+
+        // 添加随机颜色变化
+        const hue = Math.random() * 60 + 200; // 蓝紫色范围
+        const saturation = Math.random() * 30 + 70;
+        const lightness = Math.random() * 20 + 60;
+        ripple.style.background = `radial-gradient(circle,
+            hsla(${hue}, ${saturation}%, ${lightness}%, 0.4) 0%,
+            hsla(${hue + 30}, ${saturation - 20}%, ${lightness + 10}%, 0.2) 50%,
+            transparent 70%)`;
+
+        rippleContainer.appendChild(ripple);
+
+        // 波纹对象（用于物理计算）
+        const rippleData = {
+            element: ripple,
+            x: x,
+            y: y,
+            radius: initialSize / 2,
+            maxRadius: MAX_RADIUS + Math.random() * 100,
+            speed: WAVE_SPEED + Math.random() * 50,
+            amplitude: 1.0,
+            createdAt: Date.now(),
+            id: Math.random().toString(36).substr(2, 9)
+        };
+
+        activeRipples.push(rippleData);
+
+        // 开始动画
+        animateRipple(rippleData);
+
+        // 自动清理
+        setTimeout(() => {
+            removeRipple(rippleData.id);
+        }, 2000);
+    }
+
+    // 波纹动画（物理模拟）
+    function animateRipple(rippleData) {
+        const startTime = Date.now();
+
+        function animate() {
+            const elapsed = (Date.now() - startTime) / 1000; // 转换为秒
+
+            // 物理计算：波的传播
+            const targetRadius = rippleData.speed * elapsed;
+            const dampingFactor = Math.pow(DAMPING, elapsed * 10); // 指数衰减
+
+            // 更新半径
+            rippleData.radius = targetRadius;
+            rippleData.amplitude = dampingFactor;
+
+            // 检查波干涉（与其他波纹的相互作用）
+            let interferenceBoost = 0;
+            activeRipples.forEach(other => {
+                if (other.id !== rippleData.id) {
+                    const distance = Math.sqrt(
+                        Math.pow(rippleData.x - other.x, 2) +
+                        Math.pow(rippleData.y - other.y, 2)
+                    );
+
+                    // 波的叠加原理
+                    if (distance < rippleData.radius + other.radius &&
+                        distance > Math.abs(rippleData.radius - other.radius)) {
+                        interferenceBoost += other.amplitude * INTERFERENCE_STRENGTH;
+                    }
+                }
+            });
+
+            // 更新视觉效果
+            const currentRadius = rippleData.radius;
+            const currentAmplitude = Math.min(1.0, rippleData.amplitude + interferenceBoost);
+            const scale = currentRadius / (rippleData.element.offsetWidth / 2);
+
+            if (currentRadius < rippleData.maxRadius && currentAmplitude > 0.01) {
+                rippleData.element.style.transform = `scale(${scale})`;
+                rippleData.element.style.opacity = currentAmplitude;
+
+                // 添加脉动效果
+                const pulse = Math.sin(elapsed * 10) * 0.1 + 1;
+                rippleData.element.style.filter = `brightness(${pulse})`;
+
+                requestAnimationFrame(animate);
+            } else {
+                // 动画结束
+                removeRipple(rippleData.id);
+            }
+        }
+
+        requestAnimationFrame(animate);
+    }
+
+    // 移除水波纹
+    function removeRipple(id) {
+        const index = activeRipples.findIndex(r => r.id === id);
+        if (index !== -1) {
+            const rippleData = activeRipples[index];
+            if (rippleData.element && rippleData.element.parentNode) {
+                rippleData.element.style.opacity = '0';
+                setTimeout(() => {
+                    if (rippleData.element.parentNode) {
+                        rippleData.element.parentNode.removeChild(rippleData.element);
+                    }
+                }, 300);
+            }
+            activeRipples.splice(index, 1);
+        }
+    }
+
+    // 点击事件处理
+    document.addEventListener('click', function(e) {
+        // 排除交互元素
+        const excludeElements = ['a', 'button', 'input', 'textarea', 'select', 'nav', 'footer'];
+        const target = e.target;
+        const isExcluded = excludeElements.some(tag =>
+            target.tagName.toLowerCase() === tag ||
+            target.closest(tag)
+        );
+
+        if (!isExcluded) {
+            // 创建主水波纹
+            createRipple(e.clientX, e.clientY);
+
+            // 创建额外的小水波纹（增强效果）
+            setTimeout(() => {
+                if (Math.random() > 0.5) {
+                    const offsetX = (Math.random() - 0.5) * 50;
+                    const offsetY = (Math.random() - 0.5) * 50;
+                    createRipple(e.clientX + offsetX, e.clientY + offsetY);
+                }
+            }, 100);
+        }
+    });
+
+    // 清理函数
+    window.addEventListener('beforeunload', () => {
+        activeRipples.forEach(rippleData => {
+            if (rippleData.element && rippleData.element.parentNode) {
+                rippleData.element.parentNode.removeChild(rippleData.element);
+            }
+        });
+    });
+
+    console.log('✅ 水波纹系统初始化完成');
 }
 
 // 初始化留言系统
