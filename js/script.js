@@ -98,9 +98,9 @@ function initRippleSystem() {
     const activeRipples = [];
 
     // 波形参数（符合物理学定律）
-    const WAVE_SPEED = 150; // 波速 (像素/秒)
+    const WAVE_SPEED = 200; // 波速 (像素/秒)
     const DAMPING = 0.95; // 阻尼系数
-    const MAX_RADIUS = 300; // 最大半径
+    const MAX_RADIUS = 1200; // 最大半径（放大4倍）
     const INTERFERENCE_STRENGTH = 0.3; // 波干涉强度
 
     // 创建水波纹
@@ -108,8 +108,8 @@ function initRippleSystem() {
         const ripple = document.createElement('div');
         ripple.className = 'ripple';
 
-        // 设置初始位置和大小
-        const initialSize = 10;
+        // 设置初始位置和大小（放大4倍）
+        const initialSize = 40;
         ripple.style.width = initialSize + 'px';
         ripple.style.height = initialSize + 'px';
         ripple.style.left = (x - initialSize / 2) + 'px';
