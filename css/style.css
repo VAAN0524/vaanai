@@ -1323,7 +1323,7 @@ body::after {
         opacity: 1;
     }
     100% {
-        transform: scale(8); /* 扩大4倍，从4倍改为8倍 */
+        transform: scale(32); /* 扩大16倍，从8倍改为32倍（总共4倍放大） */
         opacity: 0;
     }
 }

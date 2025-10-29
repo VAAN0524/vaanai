@@ -100,7 +100,7 @@ function initRippleSystem() {
     // 波形参数（符合物理学定律）
     const WAVE_SPEED = 200; // 波速 (像素/秒)
     const DAMPING = 0.95; // 阻尼系数
-    const MAX_RADIUS = 1200; // 最大半径（放大4倍）
+    const MAX_RADIUS = 4800; // 最大半径（放大4倍，从1200改为4800）
     const INTERFERENCE_STRENGTH = 0.3; // 波干涉强度
 
     // 创建水波纹
@@ -109,7 +109,7 @@ function initRippleSystem() {
         ripple.className = 'ripple';
 
         // 设置初始位置和大小（放大4倍）
-        const initialSize = 40;
+        const initialSize = 160; // 从40改为160，放大4倍
         ripple.style.width = initialSize + 'px';
         ripple.style.height = initialSize + 'px';
         ripple.style.left = (x - initialSize / 2) + 'px';
@@ -498,6 +498,111 @@ function initMessageSystem() {
         return `${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}.${Math.floor(Math.random() * 256)}`;
     }
 
+    // 保存留言到服务器
+    async function saveToServer(messageData) {
+        try {
+            const response = await fetch('/api/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(messageData)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+            return result;
+
+        } catch (error) {
+            console.error('保存到服务器失败:', error);
+            return {
+                success: false,
+                message: error.message || '网络连接失败'
+            };
+        }
+    }
+
+    // 从服务器加载留言
+    async function loadMessagesFromServer() {
+        try {
+            const response = await fetch('/api/messages');
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const result = await response.json();
+
+            if (result.success && result.data) {
+                console.log(`🌐 从服务器加载了 ${result.data.length} 条留言`);
+                return result.data;
+            } else {
+                console.warn('服务器返回空数据或失败');
+                return null;
+            }
+
+        } catch (error) {
+            console.warn('从服务器加载留言失败:', error.message);
+            return null;
+        }
+    }
+
+    // 同步服务器留言（如果有新留言则合并）
+    async function syncWithServer() {
+        try {
+            showMessage('正在同步服务器留言...', 'info');
+            const serverMessages = await loadMessagesFromServer();
+
+            if (serverMessages && serverMessages.length > 0) {
+                // 合并服务器和本地留言，去重并按时间排序
+                const allMessages = [...messages, ...serverMessages];
+                const uniqueMessages = allMessages.reduce((acc, current) => {
+                    const exists = acc.find(msg => msg.id === current.id);
+                    if (!exists) {
+                        acc.push(current);
+                    }
+                    return acc;
+                }, []);
+
+                // 按时间排序（最新的在前）
+                uniqueMessages.sort((a, b) => new Date(b.time) - new Date(a.time));
+
+                // 更新本地留言数组
+                messages = uniqueMessages;
+
+                // 保存到localStorage
+                localStorage.setItem('messages', JSON.stringify(messages));
+
+                // 重新渲染
+                renderMessages();
+                renderTicker();
+
+                console.log('✅ 服务器同步完成');
+                showMessage('留言同步成功！', 'success');
+            } else {
+                console.log('📝 服务器没有新留言');
+            }
+
+        } catch (error) {
+            console.error('同步失败:', error);
+            showMessage('同步失败，请检查网络连接', 'warning');
+        }
+    }
+
+    // 检查服务器状态
+    async function checkServerStatus() {
+        try {
+            const response = await fetch('/api/health');
+            const result = await response.json();
+            return result.success;
+        } catch (error) {
+            return false;
+        }
+    }
+
     // 表单提交事件
     messageForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -578,9 +683,26 @@ function initMessageSystem() {
             // 添加到数组
             messages.push(newMessage);
 
-            // 保存到localStorage
+            // 保存到localStorage（作为备份）
             localStorage.setItem('messages', JSON.stringify(messages));
             console.log('留言已保存到localStorage');
+
+            // 尝试保存到服务器
+            try {
+                showMessage('正在保存到服务器...', 'info');
+                const serverResponse = await saveToServer(newMessage);
+
+                if (serverResponse.success) {
+                    console.log('留言已保存到服务器');
+                    showMessage('留言已成功保存到服务器！', 'success');
+                } else {
+                    console.warn('保存到服务器失败:', serverResponse.message);
+                    showMessage('服务器保存失败，但已保存到本地', 'warning');
+                }
+            } catch (serverError) {
+                console.error('服务器保存出错:', serverError);
+                showMessage('服务器暂时不可用，留言已保存到本地', 'warning');
+            }
 
             // 清空输入框
             if (nameInput) nameInput.value = '';
@@ -734,9 +856,27 @@ function initMessageSystem() {
     // 初始化字符计数器
     initCharCounters();
 
-    // 初始渲染
-    renderMessages();
-    renderTicker();
+    // 检查服务器状态并在可用时同步
+    async function initializeMessages() {
+        // 初始渲染本地留言
+        renderMessages();
+        renderTicker();
+
+        // 检查服务器是否可用
+        const serverAvailable = await checkServerStatus();
+        if (serverAvailable) {
+            console.log('🌐 服务器可用，尝试同步留言...');
+            // 延迟一点时间再同步，避免影响页面加载
+            setTimeout(() => {
+                syncWithServer();
+            }, 1000);
+        } else {
+            console.log('📱 服务器不可用，使用本地存储');
+        }
+    }
+
+    // 初始化留言系统
+    initializeMessages();
 
     console.log('✅ 留言系统初始化完成');
 }
