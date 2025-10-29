@@ -4,12 +4,27 @@ function cleanupOldPrivacyData() {
 
     // 保留留言数据，只清理过期的缓存
     try {
-        // 清理GitHub缓存（强制重新获取最新数据）
+        // 强制清理GitHub缓存（确保获取最新数据，特别是手机端）
         const githubCache = localStorage.getItem('github_issues_cache');
         if (githubCache) {
             localStorage.removeItem('github_issues_cache');
-            console.log('✅ 已清理GitHub缓存数据，将重新获取最新留言');
+            console.log('✅ 已强制清理GitHub缓存数据，将重新获取最新留言');
         }
+
+        // 清理其他可能的缓存键
+        const cacheKeys = [
+            'github_issues_cache',
+            'messages_sync_timestamp',
+            'last_sync_time'
+        ];
+
+        cacheKeys.forEach(key => {
+            const cache = localStorage.getItem(key);
+            if (cache) {
+                localStorage.removeItem(key);
+                console.log(`✅ 已清理缓存: ${key}`);
+            }
+        });
 
         // 验证本地留言数据完整性，但不删除
         const oldMessages = localStorage.getItem('messages');
@@ -904,8 +919,9 @@ function initMessageSystem() {
             console.log('🌐 正在从同步系统加载留言...');
             if (window.messageSync) {
                 try {
-                    messages = await window.messageSync.getMessages();
-                    console.log(`📋 从同步系统加载了 ${messages.length} 条留言`);
+                    // 使用强制刷新获取最新数据（解决手机端缓存问题）
+                    messages = await window.messageSync.getMessages(true);
+                    console.log(`📋 从同步系统加载了 ${messages.length} 条留言（强制刷新模式）`);
                 } catch (error) {
                     console.warn('从同步系统加载失败，使用本地数据:', error.message);
                 }

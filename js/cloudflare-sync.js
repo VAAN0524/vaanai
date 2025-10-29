@@ -106,7 +106,7 @@ class CloudflareMessageSync {
     }
 
     // 获取所有留言
-    async getMessages() {
+    async getMessages(forceRefresh = false) {
         try {
             // 优先使用在线后端
             if (this.backend !== 'local') {
@@ -116,9 +116,9 @@ class CloudflareMessageSync {
                 }
             }
 
-            // 使用 GitHub 备用方案
+            // 使用 GitHub 备用方案（支持强制刷新）
             if (this.githubSync) {
-                const githubMessages = await this.githubSync.getAllMessages();
+                const githubMessages = await this.githubSync.getAllMessages(forceRefresh);
                 if (githubMessages && githubMessages.length > 0) {
                     return githubMessages;
                 }

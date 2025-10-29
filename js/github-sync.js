@@ -7,7 +7,7 @@ class GitHubIssuesSync {
         this.token = token;
         this.apiBase = 'https://api.github.com';
         this.cacheKey = 'github_issues_cache';
-        this.cacheExpiry = 5 * 60 * 1000; // 5分钟缓存
+        this.cacheExpiry = 30 * 1000; // 30秒缓存（优化手机端体验）
     }
 
     // 创建 GitHub Issue
@@ -44,13 +44,20 @@ class GitHubIssuesSync {
     }
 
     // 获取所有留言 Issues
-    async getAllMessages() {
+    async getAllMessages(forceRefresh = false) {
         try {
-            // 检查缓存
-            const cached = this.getCachedData();
-            if (cached) {
-                console.log('📦 使用缓存的 GitHub Issues 数据');
-                return cached;
+            // 强制刷新时跳过缓存
+            if (!forceRefresh) {
+                // 检查缓存
+                const cached = this.getCachedData();
+                if (cached) {
+                    console.log('📦 使用缓存的 GitHub Issues 数据');
+                    return cached;
+                }
+            } else {
+                console.log('🔄 强制刷新模式，跳过缓存');
+                // 强制清理缓存
+                localStorage.removeItem(this.cacheKey);
             }
 
             const response = await fetch(
