@@ -82,42 +82,28 @@ class GitHubIssuesSync {
         }
     }
 
-    // 格式化 Issue 内容（简化版本，保护隐私）
+    // 格式化 Issue 内容（极简版本，最大隐私保护）
     formatIssueBody(message) {
-        return `## 访客留言
-
-**昵称:** ${message.name}
-**时间:** ${message.time}
-**地点:** ${message.location}
-
----
-### 留言内容
-
-${message.text}
-
----
-*此留言由 Vaan 个人主页自动收集*
-
-*为了保护隐私，部分敏感信息已被隐藏*`;
+        return `${message.text}`;
     }
 
-    // 解析 Issue 为留言格式（简化版本）
+    // 解析 Issue 为留言格式（极简版本，最大隐私保护）
     parseIssueToMessage(issue) {
-        const bodyMatch = issue.body.match(/\*\*昵称:\*\* (.+?)(?=\n|\r)/);
-        const timeMatch = issue.body.match(/\*\*时间:\*\* (.+?)(?=\n|\r)/);
-        const locationMatch = issue.body.match(/\*\*地点:\*\* (.+?)(?=\n|\r)/);
-        const contentMatch = issue.body.match(/### 留言内容\n\n(.+?)(?=\n---)/);
+        // 从标题中提取昵称
+        const titleMatch = issue.title.match(/^留言 - (.+)$/);
+        const name = titleMatch ? titleMatch[1].trim() : '访客';
+
+        // 留言内容就是 Issue 的 body
+        const text = issue.body.trim() || '留言内容';
 
         return {
             id: issue.id,
-            name: bodyMatch ? bodyMatch[1].trim() : '访客',
-            text: contentMatch ? contentMatch[1].trim() : issue.body.substring(0, 200) + '...',
-            time: timeMatch ? timeMatch[1].trim() : new Date(issue.created_at).toLocaleString('zh-CN'),
-            location: locationMatch ? locationMatch[1].trim() : '未知地点',
+            name: name,
+            text: text,
+            time: new Date(issue.created_at).toLocaleString('zh-CN'),
             githubUrl: issue.html_url,
             createdAt: issue.created_at,
-            isGitHub: true,
-            ip: '***' // 隐藏IP地址
+            isGitHub: true
         };
     }
 

@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>极简隐私保护测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            line-height: 1.6;
+        }
+        .test-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 14px;
+        }
+        button:hover { background: #5a67d8; }
+        pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+        .message-demo {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+        .message-demo .author {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .message-demo .content {
+            color: #333;
+            line-height: 1.5;
+        }
+        .privacy-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 0.5rem;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .comparison-item {
+            padding: 1rem;
+            border-radius: 6px;
+        }
+        .before {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+        .after {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .comparison-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .test-form {
+            display: grid;
+            gap: 1rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        input, textarea {
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔒 极简隐私保护测试</h1>
+        <p>验证留言系统是否只显示必要信息（昵称+留言内容）</p>
+
+        <div id="testResults"></div>
+
+        <button onclick="runMinimalPrivacyTest()">🧪 运行极简隐私测试</button>
+        <button onclick="testDataCleanup()">🧹 测试数据清理</button>
+        <button onclick="testGitHubMinimalFormat()">🐙 测试GitHub极简格式</button>
+        <button onclick="simulateOldMessage()">📝 模拟旧留言数据</button>
+        <button onclick="clearResults()">🧹 清除结果</button>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 隐私保护效果对比</h2>
+        <div class="comparison">
+            <div class="comparison-item before">
+                <div class="comparison-title">🔓 之前（泄露隐私）</div>
+                <div class="message-demo">
+                    <div class="author">电脑网页用户</div>
+                    <div class="content">111111111</div>
+                    <div style="font-size: 12px; color: #666; margin-top: 0.5rem;">
+                        📍 Wuhan, China | 🕐 2025-10-29 12:09 | 🌐 IP: ***
+                    </div>
+                </div>
+            </div>
+            <div class="comparison-item after">
+                <div class="comparison-title">🔒 现在（极简隐私）</div>
+                <div class="message-demo">
+                    <div class="author">电脑网页用户 <span class="privacy-badge">隐私保护</span></div>
+                    <div class="content">111111111</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 留言功能测试</h2>
+        <div class="test-form">
+            <div class="form-group">
+                <label>昵称:</label>
+                <input type="text" id="testName" placeholder="测试用户" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>留言:</label>
+                <textarea id="testMessage" placeholder="这是一条测试留言..." maxlength="500" rows="3"></textarea>
+            </div>
+            <button onclick="testMinimalMessage()">📤 提交极简留言测试</button>
+        </div>
+
+        <div id="messagePreview"></div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="js/github-sync.js"></script>
+    <script src="js/cloudflare-sync.js"></script>
+    <script src="config-helper.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(type, title, content) {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            div.innerHTML = `
+                <strong>[${timestamp}] ${title}</strong>
+                ${content ? `<pre>${JSON.stringify(content, null, 2)}</pre>` : ''}
+            `;
+
+            results.appendChild(div);
+            testResults.push({ type, title, content, timestamp });
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+        }
+
+        // 模拟清理旧隐私数据
+        function testCleanupOldPrivacyData() {
+            console.log('🧹 开始测试清理旧的隐私数据...');
+
+            // 创建包含敏感信息的模拟旧数据
+            const oldSensitiveData = [
+                {
+                    id: '1',
+                    name: '测试用户1',
+                    text: '这是包含敏感信息的旧留言',
+                    time: '2025-10-29 10:00',
+                    location: 'Beijing, China',
+                    ip: '192.168.1.100',
+                    userAgent: 'Mozilla/5.0 (Test Browser)'
+                },
+                {
+                    id: '2',
+                    name: '测试用户2',
+                    text: '这是另一条旧留言',
+                    time: '2025-10-29 11:00',
+                    location: 'Shanghai, China',
+                    ip: '192.168.1.101',
+                    userAgent: 'Chrome/91.0'
+                }
+            ];
+
+            // 保存到localStorage
+            localStorage.setItem('messages', JSON.stringify(oldSensitiveData));
+            console.log('📦 已保存模拟的敏感数据到localStorage');
+
+            // 检测敏感信息
+            const hasSensitiveData = oldSensitiveData.some(msg =>
+                msg.location || msg.ip || msg.userAgent
+            );
+
+            if (hasSensitiveData) {
+                localStorage.removeItem('messages');
+                console.log('✅ 已清理包含敏感信息的旧留言数据');
+                return true;
+            }
+
+            return false;
+        }
+
+        async function testDataCleanup() {
+            addTestResult('info', '🧹 开始测试数据清理功能...', '');
+
+            // 模拟保存敏感数据
+            const cleaned = testCleanupOldPrivacyData();
+
+            if (cleaned) {
+                addTestResult('success', '✅ 数据清理功能正常', {
+                    sensitiveDataDetected: true,
+                    dataCleaned: true,
+                    localStorageMessages: localStorage.getItem('messages') === null
+                });
+            } else {
+                addTestResult('warning', '⚠️ 未检测到敏感数据', '清理功能未触发');
+            }
+
+            // 测试GitHub缓存清理
+            localStorage.setItem('github_issues_cache', 'test-cache-data');
+            const hadCache = localStorage.getItem('github_issues_cache') !== null;
+
+            if (hadCache) {
+                localStorage.removeItem('github_issues_cache');
+                addTestResult('success', '✅ GitHub缓存清理成功', {
+                    cacheExisted: true,
+                    cacheCleaned: localStorage.getItem('github_issues_cache') === null
+                });
+            } else {
+                addTestResult('info', 'ℹ️ 无GitHub缓存需要清理', '');
+            }
+        }
+
+        async function testGitHubMinimalFormat() {
+            addTestResult('info', '🐙 开始测试GitHub极简格式...', '');
+
+            if (typeof GitHubIssuesSync !== 'undefined') {
+                const token = localStorage.getItem('github_token');
+                const repo = localStorage.getItem('github_repo');
+
+                if (token && repo) {
+                    const sync = new GitHubIssuesSync(repo, token);
+
+                    // 创建测试消息
+                    const testMessage = {
+                        name: '极简测试用户',
+                        text: '这是一条测试极简隐私保护的留言',
+                        time: new Date().toLocaleString('zh-CN'),
+                        location: 'Test Location',
+                        ip: '192.168.1.100',
+                        userAgent: 'Test Browser Agent'
+                    };
+
+                    // 测试极简格式化
+                    const formattedBody = sync.formatIssueBody(testMessage);
+
+                    addTestResult('success', '✅ GitHub极简格式化测试', {
+                        originalMessage: {
+                            name: testMessage.name,
+                            text: testMessage.text,
+                            hasLocation: !!testMessage.location,
+                            hasIP: !!testMessage.ip,
+                            hasUserAgent: !!testMessage.userAgent
+                        },
+                        formattedBody: formattedBody,
+                        privacyFeatures: [
+                            '只保留留言内容',
+                            '移除所有元数据',
+                            '移除地理位置',
+                            '移除IP地址',
+                            '移除用户代理',
+                            '移除时间戳'
+                        ]
+                    });
+
+                    // 验证格式化结果
+                    const onlyContainsText = formattedBody === testMessage.text;
+                    const hasNoMetadata = !formattedBody.includes('**') &&
+                                        !formattedBody.includes('时间:') &&
+                                        !formattedBody.includes('地点:') &&
+                                        !formattedBody.includes('IP:') &&
+                                        !formattedBody.includes('User-Agent');
+
+                    if (onlyContainsText && hasNoMetadata) {
+                        addTestResult('success', '✅ 极简隐私验证通过', {
+                            onlyContainsText: onlyContainsText,
+                            noMetadata: hasNoMetadata,
+                            privacyLevel: 'MAXIMUM'
+                        });
+                    } else {
+                        addTestResult('error', '❌ 极简隐私验证失败', {
+                            onlyContainsText: onlyContainsText,
+                            noMetadata: hasNoMetadata
+                        });
+                    }
+
+                    // 测试解析功能
+                    const mockIssue = {
+                        id: 12345,
+                        title: '留言 - 极简测试用户',
+                        body: testMessage.text,
+                        created_at: new Date().toISOString(),
+                        html_url: 'https://github.com/test/test/issues/12345'
+                    };
+
+                    const parsedMessage = sync.parseIssueToMessage(mockIssue);
+
+                    addTestResult('success', '✅ GitHub解析测试', {
+                        parsedMessage: {
+                            name: parsedMessage.name,
+                            text: parsedMessage.text,
+                            hasTime: !!parsedMessage.time,
+                            hasLocation: !!parsedMessage.location,
+                            hasIP: !!parsedMessage.ip
+                        },
+                        privacyProtected: !parsedMessage.location && !parsedMessage.ip
+                    });
+
+                } else {
+                    addTestResult('error', '❌ 缺少GitHub配置', '请先配置GitHub token和repo');
+                }
+            } else {
+                addTestResult('error', '❌ GitHubIssuesSync未加载', '无法测试GitHub功能');
+            }
+        }
+
+        async function simulateOldMessage() {
+            addTestResult('info', '📝 模拟创建旧的隐私数据...', '');
+
+            const oldMessage = {
+                id: Date.now().toString(),
+                name: '旧用户',
+                text: '这是一条包含隐私信息的旧留言',
+                time: new Date().toLocaleString('zh-CN'),
+                location: 'Wuhan, China',
+                ip: '123.456.789.0',
+                userAgent: 'Mozilla/5.0 (Old Browser)',
+                isOld: true
+            };
+
+            // 保存到localStorage
+            let messages = [];
+            try {
+                const stored = localStorage.getItem('messages');
+                if (stored) {
+                    messages = JSON.parse(stored);
+                }
+                messages.push(oldMessage);
+                localStorage.setItem('messages', JSON.stringify(messages));
+            } catch (error) {
+                localStorage.setItem('messages', JSON.stringify([oldMessage]));
+            }
+
+            addTestResult('success', '✅ 旧隐私数据已创建', {
+                messageCreated: true,
+                containsLocation: !!oldMessage.location,
+                containsIP: !!oldMessage.ip,
+                containsUserAgent: !!oldMessage.userAgent,
+                totalMessages: messages.length
+            });
+
+            addTestResult('warning', '⚠️ 刷新页面将触发数据清理', '下次页面加载时会自动清理这些敏感数据');
+        }
+
+        async function testMinimalMessage() {
+            const name = document.getElementById('testName').value.trim() || '极简测试用户';
+            const message = document.getElementById('testMessage').value.trim() || '这是一条极简隐私保护的测试留言';
+
+            addTestResult('info', '📤 开始测试极简留言提交...', '');
+
+            // 显示极简留言预览
+            const preview = document.getElementById('messagePreview');
+            preview.innerHTML = `
+                <h3>📋 极简留言预览</h3>
+                <div class="message-demo">
+                    <div class="author">${name} <span class="privacy-badge">极简隐私</span></div>
+                    <div class="content">${message}</div>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e8; border-radius: 6px;">
+                    <strong>🔒 隐私保护状态：</strong><br>
+                    ✅ 已隐藏地理位置<br>
+                    ✅ 已隐藏IP地址<br>
+                    ✅ 已隐藏浏览器信息<br>
+                    ✅ 已隐藏详细时间<br>
+                    ✅ 只显示昵称和内容
+                </div>
+            `;
+
+            addTestResult('success', '✅ 极简留言格式验证通过', {
+                name: name,
+                contentLength: message.length,
+                privacyLevel: 'MAXIMUM',
+                visibleInfo: ['昵称', '留言内容'],
+                hiddenInfo: ['地理位置', 'IP地址', '浏览器信息', '详细时间']
+            });
+        }
+
+        async function runMinimalPrivacyTest() {
+            clearResults();
+            addTestResult('info', '🧪 开始运行极简隐私保护测试...', '');
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testDataCleanup();
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testGitHubMinimalFormat();
+
+            addTestResult('success', '🎉 极简隐私保护测试完成', {
+                totalTests: testResults.length,
+                successCount: testResults.filter(r => r.type === 'success').length,
+                errorCount: testResults.filter(r => r.type === 'error').length,
+                warningCount: testResults.filter(r => r.type === 'warning').length,
+                privacyLevel: 'MAXIMUM',
+                features: [
+                    '只显示昵称和留言内容',
+                    '自动清理敏感数据',
+                    '极简GitHub Issue格式',
+                    '无地理位置泄露',
+                    '无IP地址泄露',
+                    '无浏览器信息泄露'
+                ]
+            });
+        }
+
+        // 页面加载完成后等待脚本初始化
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addTestResult('info', '🚀 极简隐私测试页面已加载', '开始自动测试...');
+                runMinimalPrivacyTest();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

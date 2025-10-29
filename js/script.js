@@ -1,6 +1,51 @@
+// 清理旧的隐私数据（极简隐私保护）
+function cleanupOldPrivacyData() {
+    console.log('🧹 开始清理旧的隐私数据...');
+
+    // 清理本地存储中的旧留言数据
+    try {
+        const oldMessages = localStorage.getItem('messages');
+        if (oldMessages) {
+            const messages = JSON.parse(oldMessages);
+            console.log(`📦 发现 ${messages.length} 条旧留言数据`);
+
+            // 检查是否有包含敏感信息的旧数据
+            const hasSensitiveData = messages.some(msg =>
+                msg.location || msg.ip || msg.userAgent
+            );
+
+            if (hasSensitiveData) {
+                console.log('⚠️ 检测到包含敏感信息的旧数据，正在清理...');
+                localStorage.removeItem('messages');
+                console.log('✅ 已清理包含敏感信息的旧留言数据');
+            } else {
+                console.log('✅ 现有数据符合隐私保护要求，保留数据');
+            }
+        }
+    } catch (error) {
+        console.warn('清理旧数据时出错:', error);
+    }
+
+    // 清理GitHub缓存
+    try {
+        const githubCache = localStorage.getItem('github_issues_cache');
+        if (githubCache) {
+            localStorage.removeItem('github_issues_cache');
+            console.log('✅ 已清理GitHub缓存数据');
+        }
+    } catch (error) {
+        console.warn('清理GitHub缓存时出错:', error);
+    }
+
+    console.log('🧹 隐私数据清理完成');
+}
+
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🚀 页面加载完成');
+
+    // 首先清理旧的隐私数据
+    cleanupOldPrivacyData();
 
     // 初始化Lucide图标
     if (typeof lucide !== 'undefined') {
@@ -396,57 +441,36 @@ function initMessageSystem() {
         return ip;
     }
 
-    // 渲染留言列表
+    // 渲染留言列表（极简隐私保护版本）
     function renderMessages() {
         console.log('渲染留言列表，共', messages.length, '条');
         messageList.innerHTML = '';
-        
+
         const reversedMessages = [...messages].reverse();
-        
+
         reversedMessages.forEach(msg => {
             const messageItem = document.createElement('div');
             messageItem.className = 'message-item';
-            
-            const location = msg.location || '未知地区';
-            const ip = maskIP(msg.ip || '未知');
-            
+
             messageItem.innerHTML = `
                 <div class="message-header">
-                    <div class="message-author-info">
-                        <span class="message-author">${escapeHtml(msg.name)}</span>
-                        <span class="message-location">
-                            <i data-lucide="map-pin" class="location-icon"></i>
-                            ${escapeHtml(location)}
-                        </span>
-                    </div>
-                    <div class="message-meta">
-                        <span class="message-time">
-                            <i data-lucide="clock" class="time-icon"></i>
-                            ${msg.time}
-                        </span>
-                        <span class="message-ip">IP: ${ip}</span>
-                    </div>
+                    <span class="message-author">${escapeHtml(msg.name)}</span>
                 </div>
                 <p class="message-text">${escapeHtml(msg.text)}</p>
             `;
-            
+
             messageList.appendChild(messageItem);
         });
-        
-        // 重新初始化图标
-        if (typeof lucide !== 'undefined') {
-            lucide.createIcons();
-        }
-        
-        console.log('留言列表渲染完成');
+
+        console.log('留言列表渲染完成（极简隐私保护模式）');
     }
 
-    // 渲染底部滚动条
+    // 渲染底部滚动条（极简隐私保护版本）
     function renderTicker() {
         console.log('渲染滚动条');
-        
+
         if (!tickerContent) return;
-        
+
         if (messages.length === 0) {
             tickerContent.innerHTML = `
                 <div class="ticker-item">
@@ -457,18 +481,16 @@ function initMessageSystem() {
         }
 
         const tickerItems = messages.map(msg => {
-            const location = msg.location || '未知地区';
             return `
                 <div class="ticker-item">
-                    <span class="ticker-author">${escapeHtml(msg.name)}</span>
-                    <span class="ticker-location">[${escapeHtml(location)}]</span>
+                    <span class="ticker-author">${escapeHtml(msg.name)}:</span>
                     <span class="ticker-text">${escapeHtml(msg.text)}</span>
                 </div>
             `;
         }).join('');
-        
+
         tickerContent.innerHTML = tickerItems + tickerItems;
-        console.log('滚动条渲染完成');
+        console.log('滚动条渲染完成（极简隐私保护模式）');
     }
 
     // 获取地理位置（简化版本，保护隐私）
