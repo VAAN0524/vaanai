@@ -1,65 +1,150 @@
-# Vaan 个人主页
+# Vaan 个人主页 v1.0
 
-一个现代化的个人主页，包含留言板功能和炫酷的水波纹特效。
+> 一个现代化、响应式的个人主页，具备完整的留言板功能和优雅的用户体验。
 
-## 功能特性
+![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![License](https://img.shields.io/badge/license-MIT-green.svg)
+![Status](https://img.shields.io/badge/status-production-brightgreen.svg)
 
-- 🌊 **水波纹特效**: 点击页面任意位置产生炫酷的水波纹效果（已放大4倍）
-- 💬 **留言板系统**: 支持访客留言，带有地理位置和IP显示
-- 📱 **响应式设计**: 完美适配各种设备
-- 🎨 **现代化UI**: 渐变色彩，流畅动画
-- 🗄️ **数据持久化**: 支持本地存储和服务器保存
-- 🌐 **服务器同步**: 自动同步服务器留言数据
+## ✨ 功能特性
 
-## 快速开始
+### 🎨 界面设计
+- 🌊 **水波纹特效**: 点击页面任意位置产生炫酷的多层水波纹效果（8x缩放）
+- 📱 **响应式设计**: 完美适配桌面端、平板和移动端
+- 🎯 **现代UI设计**: 渐变色彩，流畅动画，卡片式布局
+- 🎪 **图标系统**: 集成Lucide图标库，视觉效果出色
 
-### 方法1: 仅前端运行（静态网站）
+### 💬 留言系统
+- 📝 **完整留言功能**: 支持昵称和留言内容提交
+- 🔢 **实时字符计数**: 昵称20字符，留言500字符限制
+- 📍 **地理位置显示**: 显示留言者的大致地理位置
+- 🕐 **时间戳记录**: 精确记录留言时间
+- 🔄 **实时同步**: 新留言立即显示并持久化
 
-直接打开 `index.html` 文件即可使用基本功能，留言将保存在浏览器本地存储中。
+### 🔗 数据同步
+- 💾 **GitHub存储**: 使用GitHub Issues作为数据库
+- ☁️ **Cloudflare部署**: 优化的静态网站托管
+- 🔄 **智能回退**: GitHub → 本地存储 → 默认留言的多层机制
+- ⚡ **强制刷新**: 确保数据一致性的刷新机制
+- 📊 **30秒缓存**: 平衡性能与实时性的智能缓存
 
-### 方法2: 完整功能运行（带服务器）
+### 🛡️ 隐私保护
+- 🔒 **隐私保护模式**: 只显示必要的公开信息
+- 🎭 **IP模糊化**: 隐藏真实IP地址，保护用户隐私
+- 📍 **位置模糊**: 只显示大致地理区域
+- 🔍 **数据最小化**: 遵循隐私保护最佳实践
 
-1. **安装依赖**
-   ```bash
-   npm install
-   ```
+## 🚀 快速开始
 
-2. **启动服务器**
-   ```bash
-   npm start
-   ```
-   或使用开发模式（自动重启）：
-   ```bash
-   npm run dev
-   ```
+### 在线预览
+👉 **[https://vaan.pages.dev](https://vaan.pages.dev)**
 
-3. **访问网站**
-   打开浏览器访问 `http://localhost:3000`
+### 本地运行
+```bash
+# 克隆项目
+git clone https://github.com/VAAN0524/test.git
 
-## 项目结构
+# 进入项目目录
+cd test
+
+# 使用任意HTTP服务器运行
+# Python 3
+python -m http.server 8000
+
+# Node.js
+npx serve .
+
+# 或者使用Live Server等VS Code插件
+```
+
+## 📱 技术栈
+
+### 前端技术
+- **HTML5** - 语义化结构
+- **CSS3** - 现代样式和动画
+- **JavaScript ES6+** - 交互逻辑
+- **Lucide** - 图标库
+
+### 后端集成
+- **GitHub API v4** - 数据存储
+- **Cloudflare Pages** - 静态托管
+- **localStorage** - 本地缓存
+
+### 设计工具
+- **响应式设计** - CSS Grid + Flexbox
+- **动画效果** - CSS Transitions + Animations
+- **性能优化** - 懒加载 + 缓存策略
+
+## 📁 项目结构
 
 ```
 test/
-├── index.html          # 主页面
+├── index.html              # 主页面
 ├── css/
-│   └── style.css       # 样式文件
+│   └── style.css           # 样式文件
 ├── js/
-│   └── script.js       # JavaScript 逻辑
-├── images/             # 图片资源
-├── server.js           # 服务器文件
-├── package.json        # 项目配置
-├── messages.json       # 留言数据（自动生成）
-└── README.md          # 说明文档
+│   ├── script.js           # 主要逻辑
+│   ├── github-sync.js      # GitHub同步
+│   ├── cloudflare-sync.js  # Cloudflare同步
+│   └── config-helper.js    # 配置助手
+├── images/                 # 图片资源
+├── config-helper.js        # 全局配置
+├── README.md               # 项目说明
+├── CHANGELOG.md            # 更新日志
+└── LICENSE                 # 开源协议
 ```
 
-## 功能模块
+## 🔧 配置说明
 
-1. **关于我** - 个人介绍
-2. **我的技能** - 技能展示
-3. **我的作品** - 作品集展示
-4. **愿景使命** - 个人愿景
-5. **联系方式** - 邮箱和微信
-6. **访客留言** - 留言板功能（支持服务器同步）
+### GitHub配置
+项目已预配置GitHub仓库和访问令牌，无需额外配置即可使用。
+
+### 自定义配置
+如需使用自己的仓库，请修改 `config-helper.js` 中的配置：
+```javascript
+window.CONFIG = {
+    github: {
+        token: 'your_github_token',
+        repo: 'your_username/your_repo'
+    }
+};
+```
+
+## 🌟 版本历史
+
+### v1.0.0 (2025-10-29)
+- 🎉 首次正式发布
+- ✨ 完整的个人主页功能
+- 💬 留言板系统
+- 📱 响应式设计
+- 🔒 隐私保护机制
+- ⚡ 性能优化
+
+详见 [CHANGELOG.md](CHANGELOG.md)
+
+## 🤝 贡献指南
+
+欢迎提交Issue和Pull Request！
+
+1. Fork 本项目
+2. 创建功能分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启 Pull Request
+
+## 📄 开源协议
+
+本项目采用 [MIT License](LICENSE) 开源协议。
+
+## 🙏 致谢
+
+- 感谢所有参与测试和反馈的用户
+- 感谢 [Claude Code](https://claude.com/claude-code) 的技术支持
+- 感谢 [Lucide](https://lucide.dev/) 提供的优秀图标库
+
+---
+
+**Made with ❤️ by Vaan**
 
 ## 技术栈
 
