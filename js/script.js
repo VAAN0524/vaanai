@@ -53,12 +53,10 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('✅ Lucide图标已初始化');
     }
 
-    // 初始化 Cloudflare 同步系统
+    // 初始化同步系统
     if (typeof CloudflareMessageSync !== 'undefined') {
         window.messageSync = new CloudflareMessageSync();
-        console.log('✅ Cloudflare 同步系统已初始化');
-    } else {
-        console.warn('⚠️ Cloudflare 同步系统未加载，使用传统方式');
+        console.log('✅ 同步系统已初始化');
     }
 
     // 初始化所有功能
@@ -336,21 +334,15 @@ function initMessageSystem() {
 
     const messageForm = document.getElementById('messageForm');
     const messageList = document.getElementById('messageList');
-    const tickerContent = document.getElementById('tickerContent');
     const nameInput = document.getElementById('name');
     const messageInput = document.getElementById('messageText');
-    const refreshButton = document.getElementById('refreshMessages');
-    const syncStatus = document.getElementById('syncStatus');
 
-    if (!messageForm || !messageList || !tickerContent || !nameInput || !messageInput || !refreshButton || !syncStatus) {
+    if (!messageForm || !messageList || !nameInput || !messageInput) {
         console.error('❌ 找不到必要的DOM元素:', {
             messageForm: !!messageForm,
             messageList: !!messageList,
-            tickerContent: !!tickerContent,
             nameInput: !!nameInput,
-            messageInput: !!messageInput,
-            refreshButton: !!refreshButton,
-            syncStatus: !!syncStatus
+            messageInput: !!messageInput
         });
         return;
     }
@@ -358,11 +350,8 @@ function initMessageSystem() {
     console.log('✅ 所有DOM元素已找到', {
         messageForm: !!messageForm,
         messageList: !!messageList,
-        tickerContent: !!tickerContent,
         nameInput: !!nameInput,
-        messageInput: !!messageInput,
-        refreshButton: !!refreshButton,
-        syncStatus: !!syncStatus
+        messageInput: !!messageInput
     });
 
     // 从localStorage加载留言
@@ -471,40 +460,13 @@ function initMessageSystem() {
         console.log('留言列表渲染完成（平衡隐私保护模式）');
     }
 
-    // 渲染底部滚动条（极简隐私保护版本）
-    function renderTicker() {
-        console.log('渲染滚动条');
-
-        if (!tickerContent) return;
-
-        if (messages.length === 0) {
-            tickerContent.innerHTML = `
-                <div class="ticker-item">
-                    <span class="ticker-text">暂无留言，快来成为第一个留言的访客吧！</span>
-                </div>
-            `;
-            return;
-        }
-
-        const tickerItems = messages.map(msg => {
-            return `
-                <div class="ticker-item">
-                    <span class="ticker-author">${escapeHtml(msg.name)}:</span>
-                    <span class="ticker-text">${escapeHtml(msg.text)}</span>
-                </div>
-            `;
-        }).join('');
-
-        tickerContent.innerHTML = tickerItems + tickerItems;
-        console.log('滚动条渲染完成（极简隐私保护模式）');
-    }
-
+    
     // 获取地理位置（简化版本，保护隐私）
     async function getUserLocation() {
         try {
-            // 使用单个快速API，减少请求次数
+            // 使用快速API，减少超时时间
             const response = await fetch('https://ipapi.co/json/', {
-                signal: AbortSignal.timeout(5000),
+                signal: AbortSignal.timeout(3000), // 减少到3秒
                 mode: 'cors'
             });
 
@@ -629,7 +591,6 @@ function initMessageSystem() {
 
                     // 重新渲染
                     renderMessages();
-                    renderTicker();
 
                     console.log(`✅ 同步完成，新增 ${newMessages.length} 条留言`);
 
@@ -702,60 +663,7 @@ function initMessageSystem() {
         return false;
     }
 
-    // 更新同步状态显示
-    function updateSyncStatus(isOnline) {
-        if (syncStatus) {
-            if (isOnline) {
-                syncStatus.textContent = '在线';
-                syncStatus.className = 'sync-status online';
-            } else {
-                syncStatus.textContent = '离线';
-                syncStatus.className = 'sync-status offline';
-            }
-        }
-    }
-
-    // 手动刷新留言
-    async function manualRefreshMessages() {
-        if (!refreshButton) return;
-
-        try {
-            // 显示加载状态
-            refreshButton.classList.add('loading');
-            refreshButton.disabled = true;
-            const originalContent = refreshButton.innerHTML;
-            refreshButton.innerHTML = '<i data-lucide="loader-2"></i> 刷新中...';
-
-            // 重新初始化图标
-            if (typeof lucide !== 'undefined') {
-                lucide.createIcons();
-            }
-
-            // 执行同步
-            if (await checkServerStatus()) {
-                await syncWithServer();
-            } else {
-                showMessage('服务器不可用，使用本地留言', 'warning');
-            }
-
-        } catch (error) {
-            console.error('刷新留言失败:', error);
-            showMessage('刷新失败，请重试', 'error');
-        } finally {
-            // 恢复按钮状态
-            setTimeout(() => {
-                refreshButton.classList.remove('loading');
-                refreshButton.disabled = false;
-                refreshButton.innerHTML = originalContent;
-
-                // 重新初始化图标
-                if (typeof lucide !== 'undefined') {
-                    lucide.createIcons();
-                }
-            }, 500);
-        }
-    }
-
+    
     // 表单提交事件
     messageForm.addEventListener('submit', async function(e) {
         e.preventDefault();
@@ -861,7 +769,16 @@ function initMessageSystem() {
 
                 // 重新渲染
                 renderMessages();
-                renderTicker();
+
+                // 立即触发一次同步，确保显示最新留言
+                setTimeout(async () => {
+                    try {
+                        await syncWithServer();
+                        renderMessages();
+                    } catch (error) {
+                        console.warn('提交后同步失败:', error);
+                    }
+                }, 1000); // 1秒后再次同步
 
                 // 显示成功提示
                 const backendName = saveResult.backend === 'cloudflare-workers' ? 'Cloudflare' :
@@ -883,8 +800,7 @@ function initMessageSystem() {
 
             // 重新渲染
             renderMessages();
-            renderTicker();
-
+            
             // 显示成功提示
             showMessage('留言发布成功！', 'success');
 
@@ -1048,8 +964,7 @@ function initMessageSystem() {
 
             // 第二步：渲染留言
             renderMessages();
-            renderTicker();
-
+            
             // 第三步：设置定期同步
             if (window.messageSync) {
                 console.log('⏰ 设置定期同步任务');
@@ -1059,8 +974,7 @@ function initMessageSystem() {
                         if (updatedMessages.length !== messages.length) {
                             messages = updatedMessages;
                             renderMessages();
-                            renderTicker();
-                            console.log('🔄 检测到新留言，已更新显示');
+                                                        console.log('🔄 检测到新留言，已更新显示');
                         }
                     } catch (error) {
                         console.warn('定期同步失败:', error.message);
@@ -1079,40 +993,52 @@ function initMessageSystem() {
 
             console.log('✅ 留言系统初始化完成');
 
+            // 启动自动刷新功能
+            startAutoRefresh();
+
         } catch (error) {
             console.error('❌ 留言系统初始化失败:', error);
             // 确保至少有默认留言显示
             ensureLocalMessages();
             renderMessages();
-            renderTicker();
+
+            // 即使初始化失败也启动自动刷新
+            startAutoRefresh();
         }
     }
 
-    // 更新同步状态显示
-    function updateSyncStatusDisplay(status) {
-        if (syncStatus) {
-            const statusText = {
-                'cloudflare-workers': '☁️ Cloudflare',
-                'local-server': '🏠 本地服务器',
-                'local': '💾 本地存储'
-            };
+    // 自动刷新功能
+    function startAutoRefresh() {
+        console.log('🔄 启动自动刷新功能...');
 
-            const statusClass = {
-                'cloudflare-workers': 'online',
-                'local-server': 'online',
-                'local': 'offline'
-            };
-
-            syncStatus.textContent = statusText[status.backend] || '未知';
-            syncStatus.className = `sync-status ${statusClass[status.backend] || ''}`;
-
-            // 添加功能指示器
-            if (status.features.includes('github-backup')) {
-                syncStatus.textContent += ' 🐙';
+        // 每30秒自动刷新一次留言
+        setInterval(async () => {
+            try {
+                console.log('🔄 自动刷新留言...');
+                await syncWithServer();
+                renderMessages();
+            } catch (error) {
+                console.warn('自动刷新失败:', error);
             }
-        }
+        }, 30000); // 30秒间隔
+
+        // 页面可见性变化时也刷新
+        document.addEventListener('visibilitychange', async () => {
+            if (!document.hidden) {
+                console.log('🔄 页面重新可见，刷新留言...');
+                try {
+                    await syncWithServer();
+                    renderMessages();
+                } catch (error) {
+                    console.warn('页面可见时刷新失败:', error);
+                }
+            }
+        });
+
+        console.log('✅ 自动刷新功能已启动');
     }
 
+    
     // 确保本地有留言数据
     function ensureLocalMessages() {
         // 如果本地有数据，直接使用
@@ -1249,9 +1175,7 @@ function initMessageSystem() {
             },
             dom: {
                 messageForm: !!document.getElementById('messageForm'),
-                messageList: !!document.getElementById('messageList'),
-                refreshButton: !!document.getElementById('refreshMessages'),
-                syncStatus: !!document.getElementById('syncStatus')
+                messageList: !!document.getElementById('messageList')
             }
         };
 
@@ -1294,7 +1218,6 @@ function initMessageSystem() {
         if (debugInfo) {
             debugInfo.innerHTML = `
                 <div><strong>当前留言数:</strong> ${messages.length}</div>
-                <div><strong>同步状态:</strong> ${syncStatus?.textContent || '未知'}</div>
                 <div><strong>页面加载:</strong> ${Math.round(performance.now())}ms</div>
             `;
         }
