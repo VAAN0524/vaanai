@@ -1,11 +1,19 @@
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('页面加载完成');
-    
+    console.log('🚀 页面加载完成');
+
     // 初始化Lucide图标
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
-        console.log('Lucide图标已初始化');
+        console.log('✅ Lucide图标已初始化');
+    }
+
+    // 初始化 Cloudflare 同步系统
+    if (typeof CloudflareMessageSync !== 'undefined') {
+        window.messageSync = new CloudflareMessageSync();
+        console.log('✅ Cloudflare 同步系统已初始化');
+    } else {
+        console.warn('⚠️ Cloudflare 同步系统未加载，使用传统方式');
     }
 
     // 初始化所有功能
@@ -819,33 +827,49 @@ function initMessageSystem() {
                 text: text,
                 time: formatDate(new Date()),
                 location: location.location,
-                ip: location.ip
+                ip: location.ip,
+                userAgent: navigator.userAgent
             };
 
-            console.log('新留言:', newMessage);
+            console.log('📝 新留言:', newMessage);
 
-            // 添加到数组
-            messages.push(newMessage);
+            // 使用 Cloudflare 同步系统保存
+            let saveResult;
+            if (window.messageSync) {
+                showMessage('正在保存留言...', 'info');
+                saveResult = await window.messageSync.saveMessage(newMessage);
+            } else {
+                // 备用方案：传统保存方式
+                messages.push(newMessage);
+                localStorage.setItem('messages', JSON.stringify(messages));
+                saveResult = { success: true, message: '已保存到本地' };
+            }
 
-            // 保存到localStorage（作为备份）
-            localStorage.setItem('messages', JSON.stringify(messages));
-            console.log('留言已保存到localStorage');
+            if (saveResult.success) {
+                console.log('✅ 留言保存成功:', saveResult.message);
 
-            // 尝试保存到服务器
-            try {
-                showMessage('正在保存到服务器...', 'info');
-                const serverResponse = await saveToServer(newMessage);
-
-                if (serverResponse.success) {
-                    console.log('留言已保存到服务器');
-                    showMessage('留言已成功保存到服务器！', 'success');
+                // 如果使用了Cloudflare同步，重新加载所有留言
+                if (window.messageSync && saveResult.backend !== 'local') {
+                    messages = await window.messageSync.getMessages();
                 } else {
-                    console.warn('保存到服务器失败:', serverResponse.message);
-                    showMessage('服务器保存失败，但已保存到本地', 'warning');
+                    // 本地保存，添加到数组
+                    if (!messages.find(msg => msg.id === newMessage.id)) {
+                        messages.push(newMessage);
+                    }
                 }
-            } catch (serverError) {
-                console.error('服务器保存出错:', serverError);
-                showMessage('服务器暂时不可用，留言已保存到本地', 'warning');
+
+                // 重新渲染
+                renderMessages();
+                renderTicker();
+
+                // 显示成功提示
+                const backendName = saveResult.backend === 'cloudflare-workers' ? 'Cloudflare' :
+                                   saveResult.backend === 'github' ? 'GitHub Issues' : '本地';
+                showMessage(`留言已成功保存到${backendName}！`, 'success');
+
+            } else {
+                console.warn('❌ 留言保存失败:', saveResult.message);
+                showMessage('留言保存失败，请重试', 'error');
             }
 
             // 清空输入框
@@ -1000,46 +1024,92 @@ function initMessageSystem() {
     // 初始化字符计数器
     initCharCounters();
 
-    // 增强的留言初始化（多重保障）
+    // 增强的留言初始化（Cloudflare Pages 适配）
     async function initializeMessages() {
         console.log('🚀 开始初始化留言系统...');
 
-        // 第一步：确保本地有留言数据
-        ensureLocalMessages();
+        try {
+            // 第一步：从 Cloudflare 同步系统加载留言
+            console.log('🌐 正在加载留言...');
+            if (window.messageSync) {
+                messages = await window.messageSync.getMessages();
+                console.log(`📋 从 Cloudflare 系统加载了 ${messages.length} 条留言`);
 
-        // 第二步：立即渲染本地留言
-        console.log('📱 首先渲染本地留言');
-        renderMessages();
-        renderTicker();
-
-        // 第三步：尝试服务器同步（带重试）
-        console.log('🌐 尝试连接服务器...');
-        const serverAvailable = await checkServerStatusWithRetry(3);
-
-        if (serverAvailable) {
-            console.log('✅ 服务器可用，正在同步...');
-            try {
-                await syncWithServer();
-                console.log('🎉 服务器同步完成');
-            } catch (error) {
-                console.error('❌ 服务器同步失败:', error);
-                showMessage('服务器同步失败，已使用本地留言', 'warning');
+                // 显示系统状态
+                const status = await window.messageSync.getStatus();
+                console.log('🔧 系统状态:', status);
+                updateSyncStatusDisplay(status);
+            } else {
+                // 备用方案：确保本地有留言数据
+                ensureLocalMessages();
+                console.log('📱 使用传统留言系统');
             }
-        } else {
-            console.log('⚠️ 服务器不可用，使用本地留言');
-            showMessage('服务器暂时不可用，已使用本地留言', 'info');
+
+            // 第二步：渲染留言
+            renderMessages();
+            renderTicker();
+
+            // 第三步：设置定期同步
+            if (window.messageSync) {
+                console.log('⏰ 设置定期同步任务');
+                setInterval(async () => {
+                    try {
+                        const updatedMessages = await window.messageSync.getMessages();
+                        if (updatedMessages.length !== messages.length) {
+                            messages = updatedMessages;
+                            renderMessages();
+                            renderTicker();
+                            console.log('🔄 检测到新留言，已更新显示');
+                        }
+                    } catch (error) {
+                        console.warn('定期同步失败:', error.message);
+                    }
+                }, 30000); // 每30秒检查一次
+            } else {
+                // 传统同步方式
+                console.log('⏰ 设置传统定期同步任务');
+                setInterval(async () => {
+                    const isOnline = await checkServerStatus();
+                    if (isOnline) {
+                        await syncWithServer();
+                    }
+                }, 30000);
+            }
+
+            console.log('✅ 留言系统初始化完成');
+
+        } catch (error) {
+            console.error('❌ 留言系统初始化失败:', error);
+            // 确保至少有默认留言显示
+            ensureLocalMessages();
+            renderMessages();
+            renderTicker();
         }
+    }
 
-        // 第四步：设置定期同步
-        console.log('⏰ 设置定期同步任务');
-        setInterval(async () => {
-            const isOnline = await checkServerStatus();
-            if (isOnline) {
-                await syncWithServer();
+    // 更新同步状态显示
+    function updateSyncStatusDisplay(status) {
+        if (syncStatus) {
+            const statusText = {
+                'cloudflare-workers': '☁️ Cloudflare',
+                'local-server': '🏠 本地服务器',
+                'local': '💾 本地存储'
+            };
+
+            const statusClass = {
+                'cloudflare-workers': 'online',
+                'local-server': 'online',
+                'local': 'offline'
+            };
+
+            syncStatus.textContent = statusText[status.backend] || '未知';
+            syncStatus.className = `sync-status ${statusClass[status.backend] || ''}`;
+
+            // 添加功能指示器
+            if (status.features.includes('github-backup')) {
+                syncStatus.textContent += ' 🐙';
             }
-        }, 30000); // 每30秒同步一次
-
-        console.log('✅ 留言系统初始化完成');
+        }
     }
 
     // 确保本地有留言数据

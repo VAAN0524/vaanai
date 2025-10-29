@@ -1,0 +1,13 @@
+name = "vaan-website-api"
+main = "src/index.js"
+compatibility_date = "2023-10-30"
+
+[vars]
+# GitHub配置 - 请在 Cloudflare Dashboard 中设置这些环境变量
+# GITHUB_TOKEN = "your_github_personal_access_token"
+# GITHUB_REPO = "your_username/your_repo"
+
+[[kv_namespaces]]
+binding = "MESSAGE_CACHE"
+id = "your_kv_namespace_id"
+preview_id = "your_preview_kv_namespace_id"
