@@ -338,55 +338,8 @@ function initMessageSystem() {
         messageInput: !!messageInput
     });
 
-    // 从localStorage加载留言
-    let messages = [];
-    try {
-        const stored = localStorage.getItem('messages');
-        if (stored) {
-            messages = JSON.parse(stored);
-            console.log(`📦 从localStorage加载了 ${messages.length} 条留言`);
-
-            // 验证留言数据完整性
-            messages = messages.filter(msg => {
-                const isValid = msg.id && msg.name && msg.text && msg.time;
-                if (!isValid) {
-                    console.warn('⚠️ 发现无效留言数据:', msg);
-                }
-                return isValid;
-            });
-
-            console.log(`📋 验证后有效留言: ${messages.length} 条`);
-        }
-    } catch (e) {
-        console.error('❌ 加载留言失败:', e);
-        showMessage('加载历史留言失败，将显示示例留言', 'warning');
-    }
-
-    // 如果没有留言，添加示例留言
-    if (messages.length === 0) {
-        messages = [
-            {
-                id: 1,
-                name: "访客",
-                text: "欢迎来到我的个人主页！",
-                time: "2025-10-28 10:00",
-                location: "北京, China",
-                ip: "111.222.333.444"
-            },
-            {
-                id: 2,
-                name: "Vaan",
-                text: "感谢您的访问，欢迎留言交流！",
-                time: "2025-10-28 10:05",
-                location: "上海, China",
-                ip: "121.222.333.444"
-            }
-        ];
-        localStorage.setItem('messages', JSON.stringify(messages));
-        console.log('创建了示例留言');
-    }
-
-    // 格式化时间
+    // 注释：留言加载和显示逻辑已移至initializeMessages()函数
+    // 这样可以避免与GitHub同步系统的冲突，确保显示最新数据
     function formatDate(date) {
         const d = new Date(date);
         const year = d.getFullYear();
