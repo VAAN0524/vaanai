@@ -1,43 +1,27 @@
-// 清理旧的隐私数据（极简隐私保护）
+// 清理旧的隐私数据（保留留言，只清理缓存）
 function cleanupOldPrivacyData() {
-    console.log('🧹 开始清理旧的隐私数据...');
+    console.log('🧹 开始清理缓存数据...');
 
-    // 清理本地存储中的旧留言数据
+    // 保留留言数据，只清理过期的缓存
     try {
-        const oldMessages = localStorage.getItem('messages');
-        if (oldMessages) {
-            const messages = JSON.parse(oldMessages);
-            console.log(`📦 发现 ${messages.length} 条旧留言数据`);
-
-            // 检查是否有包含敏感信息的旧数据
-            const hasSensitiveData = messages.some(msg =>
-                msg.location || msg.ip || msg.userAgent
-            );
-
-            if (hasSensitiveData) {
-                console.log('⚠️ 检测到包含敏感信息的旧数据，正在清理...');
-                localStorage.removeItem('messages');
-                console.log('✅ 已清理包含敏感信息的旧留言数据');
-            } else {
-                console.log('✅ 现有数据符合隐私保护要求，保留数据');
-            }
-        }
-    } catch (error) {
-        console.warn('清理旧数据时出错:', error);
-    }
-
-    // 清理GitHub缓存
-    try {
+        // 清理GitHub缓存（强制重新获取最新数据）
         const githubCache = localStorage.getItem('github_issues_cache');
         if (githubCache) {
             localStorage.removeItem('github_issues_cache');
-            console.log('✅ 已清理GitHub缓存数据');
+            console.log('✅ 已清理GitHub缓存数据，将重新获取最新留言');
+        }
+
+        // 验证本地留言数据完整性，但不删除
+        const oldMessages = localStorage.getItem('messages');
+        if (oldMessages) {
+            const messages = JSON.parse(oldMessages);
+            console.log(`📦 本地存储中有 ${messages.length} 条留言数据，将保留`);
         }
     } catch (error) {
-        console.warn('清理GitHub缓存时出错:', error);
+        console.warn('清理缓存时出错:', error);
     }
 
-    console.log('🧹 隐私数据清理完成');
+    console.log('🧹 缓存清理完成，留言数据已保留');
 }
 
 // 页面加载完成后初始化
@@ -1035,8 +1019,8 @@ function initMessageSystem() {
         }
     }
 
-    // 启动自动刷新功能
-    startAutoRefresh();
+    // 调用增强的留言初始化
+    initializeMessages();
 }
 
 // 初始化滚动效果
