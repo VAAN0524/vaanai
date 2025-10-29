@@ -24,7 +24,7 @@ class GitHubIssuesSync {
                 headers: {
                     'Authorization': `token ${this.token}`,
                     'Content-Type': 'application/json',
-                    'User-Agent': 'Vaan-Personal-Website'
+                    'User-Agent': 'Vaan-Personal-Website/1.0'
                 },
                 body: JSON.stringify(issueData)
             });
@@ -58,7 +58,7 @@ class GitHubIssuesSync {
                 {
                     headers: {
                         'Authorization': `token ${this.token}`,
-                        'User-Agent': 'Vaan-Personal-Website'
+                        'User-Agent': 'Vaan-Personal-Website/1.0'
                     }
                 }
             );

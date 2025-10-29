@@ -17,15 +17,22 @@ class ConfigHelper {
     needsConfiguration() {
         const hostname = window.location.hostname;
 
-        // 只在 Cloudflare Pages 或 GitHub Pages 环境下显示配置提示
-        if (hostname.includes('pages.dev') || hostname.includes('github.io')) {
-            const hasToken = localStorage.getItem('github_token');
-            const hasRepo = localStorage.getItem('github_repo');
-
-            return !hasToken || !hasRepo;
+        // 开发环境下始终显示配置选项（可选）
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            return false; // 开发环境已预配置，不显示弹窗
         }
 
-        return false;
+        // 检查是否有有效配置
+        const hasToken = localStorage.getItem('github_token');
+        const hasRepo = localStorage.getItem('github_repo');
+
+        // 如果配置了默认token和repo，不显示弹窗
+        if (hasToken === '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' &&
+            hasRepo === 'VAAN0524/test') {
+            return false;
+        }
+
+        return !hasToken || !hasRepo;
     }
 
     showConfigModal() {
@@ -229,5 +236,51 @@ document.addEventListener('DOMContentLoaded', function() {
     // 等待主要脚本加载完成
     setTimeout(() => {
         window.configHelper = new ConfigHelper();
+
+        // 在开发环境下添加配置按钮（可选）
+        const hostname = window.location.hostname;
+        if (hostname === 'localhost' || hostname === '127.0.0.1') {
+            addConfigButton();
+        }
     }, 1000);
 });
+
+// 添加配置按钮（开发环境）
+function addConfigButton() {
+    const button = document.createElement('button');
+    button.innerHTML = '⚙️ 重新配置';
+    button.style.cssText = `
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        background: rgba(102, 126, 234, 0.9);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 1rem;
+        font-size: 14px;
+        cursor: pointer;
+        z-index: 9998;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        transition: all 0.3s ease;
+    `;
+
+    button.addEventListener('mouseenter', () => {
+        button.style.background = 'rgba(102, 126, 234, 1)';
+        button.style.transform = 'translateY(-2px)';
+    });
+
+    button.addEventListener('mouseleave', () => {
+        button.style.background = 'rgba(102, 126, 234, 0.9)';
+        button.style.transform = 'translateY(0)';
+    });
+
+    button.addEventListener('click', () => {
+        if (window.configHelper) {
+            window.configHelper.showConfigModal();
+        }
+    });
+
+    document.body.appendChild(button);
+    console.log('⚙️ 配置按钮已添加（仅开发环境）');
+}

@@ -73,14 +73,35 @@ class CloudflareMessageSync {
     // 初始化 GitHub 备用方案
     initGitHubSync() {
         // 检查是否配置了 GitHub 凭据
-        const githubToken = localStorage.getItem('github_token');
-        const githubRepo = localStorage.getItem('github_repo');
+        let githubToken = localStorage.getItem('github_token');
+        let githubRepo = localStorage.getItem('github_repo');
 
-        if (githubToken && githubRepo) {
-            if (typeof GitHubIssuesSync !== 'undefined') {
-                this.githubSync = new GitHubIssuesSync(githubRepo, githubToken);
-                console.log('🐙 GitHub Issues 备用方案已初始化');
+        // 如果没有配置，使用预设的配置
+        if (!githubToken || !githubRepo) {
+            console.log('🔧 使用预设的 GitHub 配置...');
+
+            // 预设配置（由开发者设置）
+            const defaultToken = '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';
+            const defaultRepo = 'VAAN0524/test';
+
+            // 只有当没有配置时才设置预设值
+            if (!githubToken) {
+                localStorage.setItem('github_token', defaultToken);
+                githubToken = defaultToken;
+                console.log('✅ 已设置默认 GitHub Token');
             }
+
+            if (!githubRepo) {
+                localStorage.setItem('github_repo', defaultRepo);
+                githubRepo = defaultRepo;
+                console.log('✅ 已设置默认 GitHub 仓库');
+            }
+        }
+
+        if (githubToken && githubRepo && typeof GitHubIssuesSync !== 'undefined') {
+            this.githubSync = new GitHubIssuesSync(githubRepo, githubToken);
+            console.log('🐙 GitHub Issues 备用方案已初始化');
+            console.log(`📋 仓库地址: ${githubRepo}`);
         }
     }
 
