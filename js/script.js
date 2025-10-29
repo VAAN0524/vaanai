@@ -757,18 +757,41 @@ function initMessageSystem() {
             if (saveResult.success) {
                 console.log('✅ 留言保存成功:', saveResult.message);
 
-                // 如果使用了Cloudflare同步，重新加载所有留言
-                if (window.messageSync && saveResult.backend !== 'local') {
-                    messages = await window.messageSync.getMessages();
-                } else {
-                    // 本地保存，添加到数组
-                    if (!messages.find(msg => msg.id === newMessage.id)) {
-                        messages.push(newMessage);
-                    }
+                // 确保新留言添加到本地数组
+                if (!messages.find(msg => msg.id === newMessage.id)) {
+                    messages.push(newMessage);
                 }
 
-                // 重新渲染
-                renderMessages();
+                // 保存到本地存储，确保数据持久化
+                try {
+                    localStorage.setItem('messages', JSON.stringify(messages));
+                    console.log('💾 留言已保存到本地存储');
+                } catch (error) {
+                    console.warn('保存到本地存储失败:', error.message);
+                }
+
+                // 如果使用了Cloudflare同步，重新加载所有留言
+                if (window.messageSync && saveResult.backend !== 'local') {
+                    try {
+                        // 等待一段时间确保GitHub数据已同步
+                        setTimeout(async () => {
+                            try {
+                                const updatedMessages = await window.messageSync.getMessages();
+                                if (updatedMessages.length >= messages.length) {
+                                    messages = updatedMessages;
+                                    // 更新本地存储
+                                    localStorage.setItem('messages', JSON.stringify(messages));
+                                    renderMessages();
+                                    console.log('🔄 从同步系统重新加载了留言');
+                                }
+                            } catch (error) {
+                                console.warn('从同步系统重新加载失败:', error.message);
+                            }
+                        }, 2000); // 等待2秒让GitHub同步
+                    } catch (error) {
+                        console.warn('设置重新加载任务失败:', error.message);
+                    }
+                }
 
                 // 立即触发一次同步，确保显示最新留言
                 setTimeout(async () => {
@@ -797,12 +820,6 @@ function initMessageSystem() {
             // 触发计数器更新
             if (nameInput) nameInput.dispatchEvent(new Event('input'));
             if (messageInput) messageInput.dispatchEvent(new Event('input'));
-
-            // 重新渲染
-            renderMessages();
-            
-            // 显示成功提示
-            showMessage('留言发布成功！', 'success');
 
             // 滚动到留言区顶部
             setTimeout(() => {
@@ -946,66 +963,81 @@ function initMessageSystem() {
         console.log('🚀 开始初始化留言系统...');
 
         try {
-            // 第一步：从 Cloudflare 同步系统加载留言
-            console.log('🌐 正在加载留言...');
+            // 第一步：优先从 Cloudflare 同步系统加载留言
+            console.log('🌐 正在从同步系统加载留言...');
             if (window.messageSync) {
-                messages = await window.messageSync.getMessages();
-                console.log(`📋 从 Cloudflare 系统加载了 ${messages.length} 条留言`);
-
-                // 显示系统状态
-                const status = await window.messageSync.getStatus();
-                console.log('🔧 系统状态:', status);
-                updateSyncStatusDisplay(status);
-            } else {
-                // 备用方案：确保本地有留言数据
-                ensureLocalMessages();
-                console.log('📱 使用传统留言系统');
+                try {
+                    messages = await window.messageSync.getMessages();
+                    console.log(`📋 从同步系统加载了 ${messages.length} 条留言`);
+                } catch (error) {
+                    console.warn('从同步系统加载失败，使用本地数据:', error.message);
+                }
             }
 
-            // 第二步：渲染留言
-            renderMessages();
-            
-            // 第三步：设置定期同步
-            if (window.messageSync) {
-                console.log('⏰ 设置定期同步任务');
-                setInterval(async () => {
-                    try {
-                        const updatedMessages = await window.messageSync.getMessages();
-                        if (updatedMessages.length !== messages.length) {
-                            messages = updatedMessages;
-                            renderMessages();
-                                                        console.log('🔄 检测到新留言，已更新显示');
+            // 第二步：如果同步系统没有数据或失败，尝试从本地存储加载
+            if (messages.length === 0) {
+                console.log('📦 正在从本地存储加载留言...');
+                try {
+                    const stored = localStorage.getItem('messages');
+                    if (stored) {
+                        const localMessages = JSON.parse(stored);
+                        // 验证留言数据完整性
+                        const validMessages = localMessages.filter(msg => {
+                            const isValid = msg.id && msg.name && msg.text && msg.time;
+                            return isValid;
+                        });
+
+                        if (validMessages.length > 0) {
+                            messages = validMessages;
+                            console.log(`📋 从本地存储加载了 ${messages.length} 条有效留言`);
                         }
-                    } catch (error) {
-                        console.warn('定期同步失败:', error.message);
                     }
-                }, 30000); // 每30秒检查一次
-            } else {
-                // 传统同步方式
-                console.log('⏰ 设置传统定期同步任务');
-                setInterval(async () => {
-                    const isOnline = await checkServerStatus();
-                    if (isOnline) {
-                        await syncWithServer();
-                    }
-                }, 30000);
+                } catch (error) {
+                    console.warn('从本地存储加载失败:', error.message);
+                }
             }
+
+            // 第三步：如果仍然没有留言，添加默认欢迎留言
+            if (messages.length === 0) {
+                console.log('📝 没有历史留言，添加默认欢迎留言');
+                messages = [
+                    {
+                        id: Date.now().toString(),
+                        name: "系统",
+                        text: "欢迎来到留言板！快来留下您的第一条留言吧～",
+                        time: new Date().toLocaleString('zh-CN'),
+                        location: "线上",
+                        isDefault: true
+                    }
+                ];
+            }
+
+            // 第四步：渲染留言
+            console.log(`🎨 准备渲染 ${messages.length} 条留言`);
+            renderMessages();
 
             console.log('✅ 留言系统初始化完成');
-
-            // 启动自动刷新功能
-            startAutoRefresh();
 
         } catch (error) {
             console.error('❌ 留言系统初始化失败:', error);
             // 确保至少有默认留言显示
-            ensureLocalMessages();
+            messages = [
+                {
+                    id: Date.now().toString(),
+                    name: "系统",
+                    text: "留言系统初始化失败，但您可以继续留言。",
+                    time: new Date().toLocaleString('zh-CN'),
+                    location: "本地",
+                    isDefault: true
+                }
+            ];
             renderMessages();
-
-            // 即使初始化失败也启动自动刷新
-            startAutoRefresh();
         }
     }
+
+    // 启动自动刷新功能
+    startAutoRefresh();
+}
 
     // 自动刷新功能
     function startAutoRefresh() {
@@ -1039,7 +1071,7 @@ function initMessageSystem() {
     }
 
     
-    // 确保本地有留言数据
+    // 确保本地有留言数据（仅检查，不添加示例）
     function ensureLocalMessages() {
         // 如果本地有数据，直接使用
         if (messages.length > 0) {
@@ -1047,47 +1079,8 @@ function initMessageSystem() {
             return;
         }
 
-        // 如果本地为空，创建示例留言
-        console.log('📝 本地无留言，创建示例数据...');
-        const sampleMessages = [
-            {
-                id: Date.now() - 3000,
-                name: "系统管理员",
-                text: "欢迎来到 Vaan 的个人主页！这里支持留言功能，您可以留下您的想法和祝福。",
-                time: new Date(Date.now() - 3000000).toISOString().replace('T', ' ').substring(0, 16),
-                location: "北京, China",
-                ip: "127.0.0.1",
-                isLocal: true
-            },
-            {
-                id: Date.now() - 2000,
-                name: "Vaan",
-                text: "感谢您的访问！欢迎留言交流，我会认真阅读每一条留言。",
-                time: new Date(Date.now() - 2000000).toISOString().replace('T', ' ').substring(0, 16),
-                location: "上海, China",
-                ip: "127.0.0.1",
-                isLocal: true
-            },
-            {
-                id: Date.now() - 1000,
-                name: "访客用户",
-                text: "网站设计得真漂亮！水波纹效果很炫酷！🌊",
-                time: new Date(Date.now() - 1000000).toISOString().replace('T', ' ').substring(0, 16),
-                location: "深圳, China",
-                ip: "192.168.1.100",
-                isLocal: true
-            }
-        ];
-
-        messages = sampleMessages;
-        localStorage.setItem('messages', JSON.stringify(messages));
-        console.log('✅ 本地示例留言创建成功');
-    }
-
-    // 添加刷新按钮事件监听
-    if (refreshButton) {
-        refreshButton.addEventListener('click', manualRefreshMessages);
-        console.log('✅ 刷新按钮事件监听已添加');
+        // 如果本地为空，记录状态但不添加示例留言
+        console.log('📝 本地无留言，等待初始化函数处理');
     }
 
     // 添加调试功能
@@ -1230,8 +1223,6 @@ function initMessageSystem() {
 
     // 初始化留言系统
     initializeMessages();
-
-    console.log('✅ 留言系统初始化完成');
 }
 
 // 初始化滚动效果
