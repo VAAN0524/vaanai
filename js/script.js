@@ -441,7 +441,7 @@ function initMessageSystem() {
         return ip;
     }
 
-    // 渲染留言列表（极简隐私保护版本）
+    // 渲染留言列表（平衡隐私保护版本）
     function renderMessages() {
         console.log('渲染留言列表，共', messages.length, '条');
         messageList.innerHTML = '';
@@ -452,9 +452,15 @@ function initMessageSystem() {
             const messageItem = document.createElement('div');
             messageItem.className = 'message-item';
 
+            // 构建显示信息（在昵称后面显示地域和时间）
+            const location = msg.location || '未知地区';
+            const time = msg.time || new Date().toLocaleString('zh-CN');
+            const displayInfo = `${escapeHtml(location)} · ${time}`;
+
             messageItem.innerHTML = `
                 <div class="message-header">
                     <span class="message-author">${escapeHtml(msg.name)}</span>
+                    <span class="message-info">${displayInfo}</span>
                 </div>
                 <p class="message-text">${escapeHtml(msg.text)}</p>
             `;
@@ -462,7 +468,7 @@ function initMessageSystem() {
             messageList.appendChild(messageItem);
         });
 
-        console.log('留言列表渲染完成（极简隐私保护模式）');
+        console.log('留言列表渲染完成（平衡隐私保护模式）');
     }
 
     // 渲染底部滚动条（极简隐私保护版本）
@@ -811,8 +817,8 @@ function initMessageSystem() {
         }
 
         try {
-            // 获取地理位置
-            showMessage('正在获取地理位置...', 'info');
+            // 准备留言信息
+            showMessage('正在准备留言信息...', 'info');
             const location = await getUserLocation();
 
             // 创建新留言

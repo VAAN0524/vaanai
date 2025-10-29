@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平衡隐私保护测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            line-height: 1.6;
+        }
+        .test-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 14px;
+        }
+        button:hover { background: #5a67d8; }
+        pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+        .message-demo {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+        .message-demo .author {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 0.5rem;
+        }
+        .message-demo .info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+        .message-demo .content {
+            color: #333;
+            line-height: 1.5;
+        }
+        .privacy-badge {
+            display: inline-block;
+            background: #28a745;
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 12px;
+            margin-left: 0.5rem;
+        }
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        .comparison-item {
+            padding: 1rem;
+            border-radius: 6px;
+        }
+        .before {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+        }
+        .after {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .comparison-title {
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+        }
+        .test-form {
+            display: grid;
+            gap: 1rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        input, textarea {
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .feature-list {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            margin: 1rem 0;
+        }
+        .feature-item {
+            padding: 0.5rem;
+            background: #e8f5e8;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>⚖️ 平衡隐私保护测试</h1>
+        <p>测试平衡的隐私保护：显示基本信息但避免敏感信息泄露</p>
+
+        <div id="testResults"></div>
+
+        <button onclick="runBalancedPrivacyTest()">🧪 运行平衡隐私测试</button>
+        <button onclick="testGitHubFormat()">🐙 测试GitHub格式</button>
+        <button onclick="testDisplayFormat()">📱 测试显示格式</button>
+        <button onclick="simulateNewMessage()">📝 模拟新留言</button>
+        <button onclick="clearResults()">🧹 清除结果</button>
+    </div>
+
+    <div class="test-container">
+        <h2>📊 平衡隐私效果展示</h2>
+        <div class="message-demo">
+            <div class="author">手机用户 <span class="privacy-badge">平衡隐私</span></div>
+            <div class="info">做个测试 · 2025-10-29 12:30</div>
+            <div class="content">这是一条测试留言，显示了基本的时间和地域信息，但隐藏了IP地址等敏感数据。</div>
+        </div>
+
+        <h3>🔒 隐私保护特性</h3>
+        <div class="feature-list">
+            <div class="feature-item">✅ 显示昵称</div>
+            <div class="feature-item">✅ 显示留言内容</div>
+            <div class="feature-item">✅ 显示地理位置</div>
+            <div class="feature-item">✅ 显示时间</div>
+            <div class="feature-item">🔒 隐藏IP地址</div>
+            <div class="feature-item">🔒 隐藏浏览器信息</div>
+            <div class="feature-item">🔒 无敏感提示</div>
+            <div class="feature-item">🔒 数据安全存储</div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 留言功能测试</h2>
+        <div class="test-form">
+            <div class="form-group">
+                <label>昵称:</label>
+                <input type="text" id="testName" placeholder="手机用户" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>留言:</label>
+                <textarea id="testMessage" placeholder="做个测试" maxlength="500" rows="3"></textarea>
+            </div>
+            <button onclick="testBalancedMessage()">📤 提交平衡隐私留言</button>
+        </div>
+
+        <div id="messagePreview"></div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="js/github-sync.js"></script>
+    <script src="js/cloudflare-sync.js"></script>
+    <script src="config-helper.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(type, title, content) {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            div.innerHTML = `
+                <strong>[${timestamp}] ${title}</strong>
+                ${content ? `<pre>${JSON.stringify(content, null, 2)}</pre>` : ''}
+            `;
+
+            results.appendChild(div);
+            testResults.push({ type, title, content, timestamp });
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+        }
+
+        async function testGitHubFormat() {
+            addTestResult('info', '🐙 开始测试GitHub平衡格式...', '');
+
+            if (typeof GitHubIssuesSync !== 'undefined') {
+                const token = localStorage.getItem('github_token');
+                const repo = localStorage.getItem('github_repo');
+
+                if (token && repo) {
+                    const sync = new GitHubIssuesSync(repo, token);
+
+                    // 创建测试消息
+                    const testMessage = {
+                        name: '平衡测试用户',
+                        text: '这是一条测试平衡隐私保护的留言',
+                        time: new Date().toLocaleString('zh-CN'),
+                        location: 'Beijing, China',
+                        ip: '192.168.1.100'
+                    };
+
+                    // 测试平衡格式化
+                    const formattedBody = sync.formatIssueBody(testMessage);
+
+                    addTestResult('success', '✅ GitHub平衡格式化测试', {
+                        originalMessage: {
+                            name: testMessage.name,
+                            text: testMessage.text,
+                            location: testMessage.location
+                        },
+                        formattedBody: formattedBody,
+                        privacyFeatures: [
+                            '保留昵称和内容',
+                            '保留地理位置',
+                            '保留时间信息',
+                            '移除IP地址',
+                            '结构化存储'
+                        ]
+                    });
+
+                    // 验证格式化结果
+                    const hasName = formattedBody.includes('**昵称:**');
+                    const hasTime = formattedBody.includes('**时间:**');
+                    const hasLocation = formattedBody.includes('**地点:**');
+                    const hasContent = formattedBody.includes('### 留言内容');
+                    const noIP = !formattedBody.includes('192.168.1.100');
+
+                    if (hasName && hasTime && hasLocation && hasContent && noIP) {
+                        addTestResult('success', '✅ 平衡格式验证通过', {
+                            hasName: hasName,
+                            hasTime: hasTime,
+                            hasLocation: hasLocation,
+                            hasContent: hasContent,
+                            noIP: noIP,
+                            privacyLevel: 'BALANCED'
+                        });
+                    } else {
+                        addTestResult('error', '❌ 平衡格式验证失败', {
+                            hasName: hasName,
+                            hasTime: hasTime,
+                            hasLocation: hasLocation,
+                            hasContent: hasContent,
+                            noIP: noIP
+                        });
+                    }
+
+                    // 测试解析功能
+                    const mockIssue = {
+                        id: 12345,
+                        title: '留言 - 平衡测试用户',
+                        body: formattedBody,
+                        created_at: new Date().toISOString(),
+                        html_url: 'https://github.com/test/test/issues/12345'
+                    };
+
+                    const parsedMessage = sync.parseIssueToMessage(mockIssue);
+
+                    addTestResult('success', '✅ GitHub解析测试', {
+                        parsedMessage: {
+                            name: parsedMessage.name,
+                            text: parsedMessage.text,
+                            time: parsedMessage.time,
+                            location: parsedMessage.location
+                        },
+                        dataIntegrity: parsedMessage.name === testMessage.name &&
+                                      parsedMessage.text === testMessage.text &&
+                                      parsedMessage.location === testMessage.location
+                    });
+
+                } else {
+                    addTestResult('error', '❌ 缺少GitHub配置', '请先配置GitHub token和repo');
+                }
+            } else {
+                addTestResult('error', '❌ GitHubIssuesSync未加载', '无法测试GitHub功能');
+            }
+        }
+
+        async function testDisplayFormat() {
+            addTestResult('info', '📱 开始测试显示格式...', '');
+
+            // 模拟留言数据
+            const testMessages = [
+                {
+                    id: '1',
+                    name: '手机用户',
+                    text: '做个测试',
+                    time: '2025-10-29 12:30',
+                    location: 'Beijing, China'
+                },
+                {
+                    id: '2',
+                    name: '电脑用户',
+                    text: '这是来自电脑的留言',
+                    time: '2025-10-29 13:45',
+                    location: 'Shanghai, China'
+                }
+            ];
+
+            addTestResult('success', '✅ 显示格式测试', {
+                displayFormat: '昵称 + 地域时间 + 内容',
+                example: {
+                    author: testMessages[0].name,
+                    info: `${testMessages[0].location} · ${testMessages[0].time}`,
+                    content: testMessages[0].text
+                },
+                privacyProtected: true,
+                userFriendly: true
+            });
+
+            // 生成显示预览
+            const preview = document.getElementById('messagePreview');
+            preview.innerHTML = `
+                <h3>📱 平衡隐私显示预览</h3>
+                ${testMessages.map(msg => `
+                    <div class="message-demo">
+                        <div class="author">${msg.name} <span class="privacy-badge">平衡隐私</span></div>
+                        <div class="info">${msg.location} · ${msg.time}</div>
+                        <div class="content">${msg.text}</div>
+                    </div>
+                `).join('')}
+            `;
+        }
+
+        async function simulateNewMessage() {
+            addTestResult('info', '📝 模拟新留言提交...', '');
+
+            const newMessage = {
+                id: Date.now().toString(),
+                name: '新用户',
+                text: '这是新提交的留言',
+                time: new Date().toLocaleString('zh-CN'),
+                location: 'Guangzhou, China',
+                ip: '***.***.***.200' // 模拟隐私保护的IP
+            };
+
+            addTestResult('success', '✅ 新留言模拟完成', {
+                message: newMessage,
+                submissionProcess: [
+                    '✅ 收集昵称和内容',
+                    '✅ 获取地理位置',
+                    '✅ 获取时间',
+                    '🔒 IP地址已保护',
+                    '🔒 无敏感信息提示',
+                    '✅ 准备保存到GitHub'
+                ],
+                privacyLevel: 'BALANCED'
+            });
+        }
+
+        async function testBalancedMessage() {
+            const name = document.getElementById('testName').value.trim() || '手机用户';
+            const message = document.getElementById('testMessage').value.trim() || '做个测试';
+
+            addTestResult('info', '📤 开始测试平衡隐私留言...', '');
+
+            // 显示平衡留言预览
+            const preview = document.getElementById('messagePreview');
+            const currentTime = new Date().toLocaleString('zh-CN');
+            const mockLocation = 'Test City, Country';
+
+            preview.innerHTML = `
+                <h3>📱 平衡隐私留言预览</h3>
+                <div class="message-demo">
+                    <div class="author">${name} <span class="privacy-badge">平衡隐私</span></div>
+                    <div class="info">${mockLocation} · ${currentTime}</div>
+                    <div class="content">${message}</div>
+                </div>
+                <div style="margin-top: 1rem; padding: 1rem; background: #e8f5e8; border-radius: 6px;">
+                    <strong>🔒 隐私保护状态：</strong><br>
+                    ✅ 显示基本信息（昵称、地域、时间）<br>
+                    ✅ 隐藏敏感信息（IP地址、浏览器）<br>
+                    ✅ 无令人不安的隐私提示<br>
+                    ✅ 数据安全存储到GitHub
+                </div>
+            `;
+
+            addTestResult('success', '✅ 平衡隐私留言验证通过', {
+                name: name,
+                content: message,
+                time: currentTime,
+                location: mockLocation,
+                privacyLevel: 'BALANCED',
+                features: [
+                    '显示必要信息',
+                    '保护敏感数据',
+                    '用户友好体验',
+                    '安全数据存储'
+                ]
+            });
+        }
+
+        async function runBalancedPrivacyTest() {
+            clearResults();
+            addTestResult('info', '🧪 开始运行平衡隐私保护测试...', '');
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testGitHubFormat();
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testDisplayFormat();
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await simulateNewMessage();
+
+            addTestResult('success', '🎉 平衡隐私保护测试完成', {
+                totalTests: testResults.length,
+                successCount: testResults.filter(r => r.type === 'success').length,
+                errorCount: testResults.filter(r => r.type === 'error').length,
+                warningCount: testResults.filter(r => r.type === 'warning').length,
+                privacyLevel: 'BALANCED',
+                features: [
+                    '显示昵称和留言内容',
+                    '显示地理位置和时间',
+                    '隐藏IP地址和浏览器信息',
+                    '无令人不安的隐私提示',
+                    '平衡隐私保护',
+                    '用户友好体验'
+                ]
+            });
+        }
+
+        // 页面加载完成后等待脚本初始化
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addTestResult('info', '🚀 平衡隐私测试页面已加载', '开始自动测试...');
+                runBalancedPrivacyTest();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

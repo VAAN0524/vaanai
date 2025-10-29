@@ -82,25 +82,38 @@ class GitHubIssuesSync {
         }
     }
 
-    // 格式化 Issue 内容（极简版本，最大隐私保护）
+    // 格式化 Issue 内容（平衡版本，保存必要信息）
     formatIssueBody(message) {
-        return `${message.text}`;
+        return `**昵称:** ${message.name}
+
+**时间:** ${message.time}
+
+**地点:** ${message.location || '未知地区'}
+
+---
+### 留言内容
+
+${message.text}`;
     }
 
-    // 解析 Issue 为留言格式（极简版本，最大隐私保护）
+    // 解析 Issue 为留言格式（平衡版本）
     parseIssueToMessage(issue) {
         // 从标题中提取昵称
         const titleMatch = issue.title.match(/^留言 - (.+)$/);
         const name = titleMatch ? titleMatch[1].trim() : '访客';
 
-        // 留言内容就是 Issue 的 body
-        const text = issue.body.trim() || '留言内容';
+        // 从body中解析结构化信息
+        const bodyMatch = issue.body.match(/\*\*昵称:\*\* (.+?)(?=\n|\r)/);
+        const timeMatch = issue.body.match(/\*\*时间:\*\* (.+?)(?=\n|\r)/);
+        const locationMatch = issue.body.match(/\*\*地点:\*\* (.+?)(?=\n|\r)/);
+        const contentMatch = issue.body.match(/### 留言内容\n\n(.+?)(?=\n|$)/s);
 
         return {
             id: issue.id,
-            name: name,
-            text: text,
-            time: new Date(issue.created_at).toLocaleString('zh-CN'),
+            name: bodyMatch ? bodyMatch[1].trim() : name,
+            text: contentMatch ? contentMatch[1].trim() : issue.body.trim(),
+            time: timeMatch ? timeMatch[1].trim() : new Date(issue.created_at).toLocaleString('zh-CN'),
+            location: locationMatch ? locationMatch[1].trim() : '未知地区',
             githubUrl: issue.html_url,
             createdAt: issue.created_at,
             isGitHub: true
