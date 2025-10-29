@@ -42,10 +42,10 @@
 ### 本地运行
 ```bash
 # 克隆项目
-git clone https://github.com/VAAN0524/test.git
+git clone https://github.com/VAAN0524/vaanai.git
 
 # 进入项目目录
-cd test
+cd vaanai
 
 # 使用任意HTTP服务器运行
 # Python 3

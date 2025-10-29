@@ -28,7 +28,7 @@ class ConfigHelper {
 
         // 预设配置检查
         const defaultToken = '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';
-        const defaultRepo = 'VAAN0524/test';
+        const defaultRepo = 'VAAN0524/vaanai';
 
         // 如果已配置为预设值，不显示弹窗
         if (hasToken === defaultToken && hasRepo === defaultRepo) {
@@ -111,7 +111,7 @@ class ConfigHelper {
 
                     <div style="margin-bottom: 1.5rem;">
                         <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">GitHub 仓库:</label>
-                        <input type="text" id="githubRepo" placeholder="VAAN0524/test" style="
+                        <input type="text" id="githubRepo" placeholder="VAAN0524/vaanai" style="
                             width: 100%;
                             padding: 0.75rem;
                             border: 2px solid #e9ecef;
@@ -253,7 +253,7 @@ class ConfigHelper {
 document.addEventListener('DOMContentLoaded', function() {
     // 首先设置预设配置（在创建ConfigHelper之前）
     const defaultToken = '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';
-    const defaultRepo = 'VAAN0524/test';
+    const defaultRepo = 'VAAN0524/vaanai';
 
     // 检查是否已配置，如果没有则设置预设值
     const currentToken = localStorage.getItem('github_token');
