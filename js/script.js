@@ -639,17 +639,58 @@ function initMessageSystem() {
         }
     }
 
-    // 检查服务器状态
+    // 多层次服务器状态检查
     async function checkServerStatus() {
-        try {
-            const response = await fetch('/api/health');
-            const result = await response.json();
-            updateSyncStatus(true);
-            return result.success;
-        } catch (error) {
-            updateSyncStatus(false);
-            return false;
+        const urls = [
+            '/api/health',
+            '/api/debug',
+            '/api/messages'
+        ];
+
+        for (const url of urls) {
+            try {
+                console.log(`🔍 检查服务器状态: ${url}`);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    timeout: 5000
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('✅ 服务器状态正常:', result);
+                    updateSyncStatus(true);
+                    return true;
+                }
+            } catch (error) {
+                console.warn(`⚠️ 检查失败 ${url}:`, error.message);
+                continue;
+            }
         }
+
+        console.log('❌ 所有服务器检查都失败');
+        updateSyncStatus(false);
+        return false;
+    }
+
+    // 增强的服务器检查（带重试机制）
+    async function checkServerStatusWithRetry(maxRetries = 3) {
+        for (let i = 0; i < maxRetries; i++) {
+            console.log(`🔄 服务器状态检查 ${i + 1}/${maxRetries}`);
+            const isOnline = await checkServerStatus();
+
+            if (isOnline) {
+                return true;
+            }
+
+            // 指数退避重试
+            if (i < maxRetries - 1) {
+                const delay = Math.pow(2, i) * 1000; // 1s, 2s, 4s
+                console.log(`⏳ 等待 ${delay}ms 后重试...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+            }
+        }
+
+        return false;
     }
 
     // 更新同步状态显示
@@ -959,58 +1000,238 @@ function initMessageSystem() {
     // 初始化字符计数器
     initCharCounters();
 
-    // 检查服务器状态并在可用时同步
+    // 增强的留言初始化（多重保障）
     async function initializeMessages() {
-        // 首先尝试从服务器加载留言
-        const serverAvailable = await checkServerStatus();
+        console.log('🚀 开始初始化留言系统...');
+
+        // 第一步：确保本地有留言数据
+        ensureLocalMessages();
+
+        // 第二步：立即渲染本地留言
+        console.log('📱 首先渲染本地留言');
+        renderMessages();
+        renderTicker();
+
+        // 第三步：尝试服务器同步（带重试）
+        console.log('🌐 尝试连接服务器...');
+        const serverAvailable = await checkServerStatusWithRetry(3);
 
         if (serverAvailable) {
-            console.log('🌐 服务器可用，优先从服务器加载留言...');
+            console.log('✅ 服务器可用，正在同步...');
             try {
-                const serverMessages = await loadMessagesFromServer();
-
-                if (serverMessages && serverMessages.length > 0) {
-                    // 如果服务器有留言，直接使用服务器数据
-                    messages = serverMessages;
-
-                    // 备份到localStorage
-                    localStorage.setItem('messages', JSON.stringify(messages));
-
-                    // 渲染服务器留言
-                    renderMessages();
-                    renderTicker();
-
-                    console.log(`✅ 从服务器加载了 ${messages.length} 条留言`);
-                } else {
-                    // 服务器为空，使用本地留言
-                    console.log('📝 服务器为空，使用本地存储');
-                    renderMessages();
-                    renderTicker();
-                }
+                await syncWithServer();
+                console.log('🎉 服务器同步完成');
             } catch (error) {
-                console.error('从服务器加载留言失败:', error);
-                // 出错时使用本地留言
-                renderMessages();
-                renderTicker();
+                console.error('❌ 服务器同步失败:', error);
+                showMessage('服务器同步失败，已使用本地留言', 'warning');
             }
         } else {
-            console.log('📱 服务器不可用，使用本地存储');
-            renderMessages();
-            renderTicker();
+            console.log('⚠️ 服务器不可用，使用本地留言');
+            showMessage('服务器暂时不可用，已使用本地留言', 'info');
         }
 
-        // 定期同步（每30秒检查一次新留言）
+        // 第四步：设置定期同步
+        console.log('⏰ 设置定期同步任务');
         setInterval(async () => {
-            if (await checkServerStatus()) {
+            const isOnline = await checkServerStatus();
+            if (isOnline) {
                 await syncWithServer();
             }
-        }, 30000);
+        }, 30000); // 每30秒同步一次
+
+        console.log('✅ 留言系统初始化完成');
+    }
+
+    // 确保本地有留言数据
+    function ensureLocalMessages() {
+        // 如果本地有数据，直接使用
+        if (messages.length > 0) {
+            console.log(`📋 本地已有 ${messages.length} 条留言`);
+            return;
+        }
+
+        // 如果本地为空，创建示例留言
+        console.log('📝 本地无留言，创建示例数据...');
+        const sampleMessages = [
+            {
+                id: Date.now() - 3000,
+                name: "系统管理员",
+                text: "欢迎来到 Vaan 的个人主页！这里支持留言功能，您可以留下您的想法和祝福。",
+                time: new Date(Date.now() - 3000000).toISOString().replace('T', ' ').substring(0, 16),
+                location: "北京, China",
+                ip: "127.0.0.1",
+                isLocal: true
+            },
+            {
+                id: Date.now() - 2000,
+                name: "Vaan",
+                text: "感谢您的访问！欢迎留言交流，我会认真阅读每一条留言。",
+                time: new Date(Date.now() - 2000000).toISOString().replace('T', ' ').substring(0, 16),
+                location: "上海, China",
+                ip: "127.0.0.1",
+                isLocal: true
+            },
+            {
+                id: Date.now() - 1000,
+                name: "访客用户",
+                text: "网站设计得真漂亮！水波纹效果很炫酷！🌊",
+                time: new Date(Date.now() - 1000000).toISOString().replace('T', ' ').substring(0, 16),
+                location: "深圳, China",
+                ip: "192.168.1.100",
+                isLocal: true
+            }
+        ];
+
+        messages = sampleMessages;
+        localStorage.setItem('messages', JSON.stringify(messages));
+        console.log('✅ 本地示例留言创建成功');
     }
 
     // 添加刷新按钮事件监听
     if (refreshButton) {
         refreshButton.addEventListener('click', manualRefreshMessages);
         console.log('✅ 刷新按钮事件监听已添加');
+    }
+
+    // 添加调试功能
+    function addDebugTools() {
+        // 创建调试面板
+        const debugPanel = document.createElement('div');
+        debugPanel.id = 'debugPanel';
+        debugPanel.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            z-index: 10000;
+            max-width: 300px;
+            display: none;
+        `;
+
+        debugPanel.innerHTML = `
+            <div style="margin-bottom: 10px; font-weight: bold;">🔧 调试面板</div>
+            <div id="debugInfo"></div>
+            <button onclick="toggleDebug()" style="margin-top: 10px; padding: 5px 10px; background: #667eea; border: none; border-radius: 4px; color: white; cursor: pointer;">关闭</button>
+            <button onclick="runDiagnostics()" style="margin-top: 5px; padding: 5px 10px; background: #f59e0b; border: none; border-radius: 4px; color: white; cursor: pointer;">运行诊断</button>
+        `;
+
+        document.body.appendChild(debugPanel);
+
+        // 添加调试按钮
+        const debugButton = document.createElement('button');
+        debugButton.textContent = '🔧';
+        debugButton.style.cssText = `
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(102, 126, 234, 0.8);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 9999;
+        `;
+
+        debugButton.addEventListener('click', () => {
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+            updateDebugInfo();
+        });
+
+        document.body.appendChild(debugButton);
+
+        // 全局调试函数
+        window.toggleDebug = () => {
+            debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+        };
+
+        window.runDiagnostics = async () => {
+            console.log('🔍 运行系统诊断...');
+            const diagnostics = await runSystemDiagnostics();
+            document.getElementById('debugInfo').innerHTML = formatDiagnostics(diagnostics);
+        };
+
+        console.log('✅ 调试工具已添加');
+    }
+
+    // 系统诊断
+    async function runSystemDiagnostics() {
+        const diagnostics = {
+            timestamp: new Date().toISOString(),
+            browser: navigator.userAgent,
+            url: window.location.href,
+            localStorage: {
+                available: typeof(Storage) !== "undefined",
+                messagesCount: localStorage.getItem('messages') ? JSON.parse(localStorage.getItem('messages')).length : 0,
+                size: JSON.stringify(localStorage).length
+            },
+            server: {
+                health: false,
+                responseTime: null,
+                error: null
+            },
+            dom: {
+                messageForm: !!document.getElementById('messageForm'),
+                messageList: !!document.getElementById('messageList'),
+                refreshButton: !!document.getElementById('refreshMessages'),
+                syncStatus: !!document.getElementById('syncStatus')
+            }
+        };
+
+        // 测试服务器连接
+        try {
+            const startTime = Date.now();
+            const response = await fetch('/api/health', { timeout: 5000 });
+            const endTime = Date.now();
+
+            if (response.ok) {
+                diagnostics.server.health = true;
+                diagnostics.server.responseTime = endTime - startTime;
+                const data = await response.json();
+                diagnostics.server.data = data;
+            }
+        } catch (error) {
+            diagnostics.server.error = error.message;
+        }
+
+        return diagnostics;
+    }
+
+    // 格式化诊断信息
+    function formatDiagnostics(diagnostics) {
+        return `
+            <div><strong>时间:</strong> ${new Date(diagnostics.timestamp).toLocaleString()}</div>
+            <div><strong>浏览器:</strong> ${diagnostics.browser.substring(0, 50)}...</div>
+            <div><strong>URL:</strong> ${diagnostics.url}</div>
+            <div><strong>LocalStorage:</strong> ${diagnostics.localStorage.available ? '✅' : '❌'} (${diagnostics.localStorage.messagesCount} 条留言)</div>
+            <div><strong>服务器状态:</strong> ${diagnostics.server.health ? '✅ 在线' : '❌ 离线'}</div>
+            ${diagnostics.server.responseTime ? `<div><strong>响应时间:</strong> ${diagnostics.server.responseTime}ms</div>` : ''}
+            ${diagnostics.server.error ? `<div><strong>错误:</strong> ${diagnostics.server.error}</div>` : ''}
+            <div><strong>DOM元素:</strong> ${Object.values(diagnostics.dom).filter(Boolean).length}/${Object.keys(diagnostics.dom).length} 正常</div>
+        `;
+    }
+
+    // 更新调试信息
+    function updateDebugInfo() {
+        const debugInfo = document.getElementById('debugInfo');
+        if (debugInfo) {
+            debugInfo.innerHTML = `
+                <div><strong>当前留言数:</strong> ${messages.length}</div>
+                <div><strong>同步状态:</strong> ${syncStatus?.textContent || '未知'}</div>
+                <div><strong>页面加载:</strong> ${Math.round(performance.now())}ms</div>
+            `;
+        }
+    }
+
+    // 添加调试工具（开发环境）
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        addDebugTools();
     }
 
     // 初始化留言系统
