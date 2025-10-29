@@ -97,32 +97,49 @@ function initRippleSystem() {
     // 存储所有活动的水波纹
     const activeRipples = [];
 
-    // 波形参数（符合物理学定律）
-    const WAVE_SPEED = 200; // 波速 (像素/秒)
-    const DAMPING = 0.95; // 阻尼系数
-    const MAX_RADIUS = 4800; // 最大半径（放大4倍，从1200改为4800）
-    const INTERFERENCE_STRENGTH = 0.3; // 波干涉强度
+    // 波形参数（符合物理学定律，更逼真的效果）
+    const WAVE_SPEED = 300; // 波速 (像素/秒) - 加快一点
+    const DAMPING = 0.92; // 阻尼系数 - 稍微增加衰减
+    const MAX_RADIUS = 1200; // 最大半径（缩小4倍，从4800改为1200）
+    const INTERFERENCE_STRENGTH = 0.4; // 波干涉强度 - 增加干涉效果
+    const WAVE_COUNT = 3; // 多层波纹，更逼真
 
-    // 创建水波纹
+    // 创建水波纹（更逼真的多层效果）
     function createRipple(x, y) {
+        // 创建多层波纹，更逼真的水波效果
+        for (let i = 0; i < WAVE_COUNT; i++) {
+            setTimeout(() => {
+                createSingleRipple(x, y, i);
+            }, i * 150); // 每层延迟150ms
+        }
+    }
+
+    // 创建单个水波纹
+    function createSingleRipple(x, y, waveIndex) {
         const ripple = document.createElement('div');
         ripple.className = 'ripple';
 
-        // 设置初始位置和大小（放大4倍）
-        const initialSize = 160; // 从40改为160，放大4倍
+        // 设置初始位置和大小（缩小4倍）
+        const initialSize = 40 - waveIndex * 5; // 每层稍微小一点
         ripple.style.width = initialSize + 'px';
         ripple.style.height = initialSize + 'px';
         ripple.style.left = (x - initialSize / 2) + 'px';
         ripple.style.top = (y - initialSize / 2) + 'px';
 
-        // 添加随机颜色变化
-        const hue = Math.random() * 60 + 200; // 蓝紫色范围
-        const saturation = Math.random() * 30 + 70;
-        const lightness = Math.random() * 20 + 60;
-        ripple.style.background = `radial-gradient(circle,
-            hsla(${hue}, ${saturation}%, ${lightness}%, 0.4) 0%,
-            hsla(${hue + 30}, ${saturation - 20}%, ${lightness + 10}%, 0.2) 50%,
-            transparent 70%)`;
+        // 更逼真的颜色和透明度渐变
+        const hue = 200 + waveIndex * 10 + Math.random() * 20; // 蓝色范围，每层略有不同
+        const saturation = 70 - waveIndex * 10 + Math.random() * 20;
+        const lightness = 60 + waveIndex * 5 + Math.random() * 10;
+        const opacity = 0.6 - waveIndex * 0.15; // 每层透明度递减
+
+        ripple.style.background = `radial-gradient(circle at center,
+            hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity}) 0%,
+            hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity * 0.6}) 30%,
+            hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity * 0.3}) 60%,
+            transparent 100%)`;
+
+        // 添加边框，模拟真实水波
+        ripple.style.border = `1px solid hsla(${hue}, ${saturation}%, ${lightness}%, ${opacity * 0.3})`;
 
         rippleContainer.appendChild(ripple);
 
@@ -132,11 +149,12 @@ function initRippleSystem() {
             x: x,
             y: y,
             radius: initialSize / 2,
-            maxRadius: MAX_RADIUS + Math.random() * 100,
-            speed: WAVE_SPEED + Math.random() * 50,
-            amplitude: 1.0,
+            maxRadius: MAX_RADIUS + Math.random() * 100 - waveIndex * 50, // 每层最大半径略有不同
+            speed: WAVE_SPEED + Math.random() * 50 - waveIndex * 20, // 每层速度略有不同
+            amplitude: 1.0 - waveIndex * 0.1, // 每层振幅略有不同
             createdAt: Date.now(),
-            id: Math.random().toString(36).substr(2, 9)
+            id: Math.random().toString(36).substr(2, 9) + '_' + waveIndex,
+            waveIndex: waveIndex
         };
 
         activeRipples.push(rippleData);
@@ -144,10 +162,10 @@ function initRippleSystem() {
         // 开始动画
         animateRipple(rippleData);
 
-        // 自动清理
+        // 自动清理（每层清理时间略有不同）
         setTimeout(() => {
             removeRipple(rippleData.id);
-        }, 2000);
+        }, 2000 + waveIndex * 300);
     }
 
     // 波纹动画（物理模拟）
@@ -268,19 +286,31 @@ function initMessageSystem() {
     const tickerContent = document.getElementById('tickerContent');
     const nameInput = document.getElementById('name');
     const messageInput = document.getElementById('messageText');
+    const refreshButton = document.getElementById('refreshMessages');
+    const syncStatus = document.getElementById('syncStatus');
 
-    if (!messageForm || !messageList || !tickerContent || !nameInput || !messageInput) {
+    if (!messageForm || !messageList || !tickerContent || !nameInput || !messageInput || !refreshButton || !syncStatus) {
         console.error('❌ 找不到必要的DOM元素:', {
             messageForm: !!messageForm,
             messageList: !!messageList,
             tickerContent: !!tickerContent,
             nameInput: !!nameInput,
-            messageInput: !!messageInput
+            messageInput: !!messageInput,
+            refreshButton: !!refreshButton,
+            syncStatus: !!syncStatus
         });
         return;
     }
 
-    console.log('✅ 所有DOM元素已找到');
+    console.log('✅ 所有DOM元素已找到', {
+        messageForm: !!messageForm,
+        messageList: !!messageList,
+        tickerContent: !!tickerContent,
+        nameInput: !!nameInput,
+        messageInput: !!messageInput,
+        refreshButton: !!refreshButton,
+        syncStatus: !!syncStatus
+    });
 
     // 从localStorage加载留言
     let messages = [];
@@ -550,45 +580,62 @@ function initMessageSystem() {
         }
     }
 
-    // 同步服务器留言（如果有新留言则合并）
+    // 同步服务器留言（智能合并，避免重复）
     async function syncWithServer() {
         try {
-            showMessage('正在同步服务器留言...', 'info');
+            // 静默同步，不显示提示
+            console.log('🔄 正在同步服务器留言...');
             const serverMessages = await loadMessagesFromServer();
 
             if (serverMessages && serverMessages.length > 0) {
-                // 合并服务器和本地留言，去重并按时间排序
-                const allMessages = [...messages, ...serverMessages];
-                const uniqueMessages = allMessages.reduce((acc, current) => {
-                    const exists = acc.find(msg => msg.id === current.id);
-                    if (!exists) {
-                        acc.push(current);
-                    }
-                    return acc;
-                }, []);
+                // 获取当前本地留言的ID集合
+                const localMessageIds = new Set(messages.map(msg => msg.id));
 
-                // 按时间排序（最新的在前）
-                uniqueMessages.sort((a, b) => new Date(b.time) - new Date(a.time));
+                // 找出服务器上有但本地没有的新留言
+                const newMessages = serverMessages.filter(serverMsg =>
+                    !localMessageIds.has(serverMsg.id)
+                );
 
-                // 更新本地留言数组
-                messages = uniqueMessages;
+                if (newMessages.length > 0) {
+                    // 合并本地留言和新的服务器留言
+                    const allMessages = [...messages, ...newMessages];
 
-                // 保存到localStorage
-                localStorage.setItem('messages', JSON.stringify(messages));
+                    // 去重（按ID）并按时间排序（最新的在前）
+                    const uniqueMessages = allMessages.reduce((acc, current) => {
+                        const exists = acc.find(msg => msg.id === current.id);
+                        if (!exists) {
+                            acc.push(current);
+                        }
+                        return acc;
+                    }, []);
 
-                // 重新渲染
-                renderMessages();
-                renderTicker();
+                    // 按时间排序（最新的在前）
+                    uniqueMessages.sort((a, b) => new Date(b.time) - new Date(a.time));
 
-                console.log('✅ 服务器同步完成');
-                showMessage('留言同步成功！', 'success');
+                    // 更新本地留言数组
+                    messages = uniqueMessages;
+
+                    // 保存到localStorage
+                    localStorage.setItem('messages', JSON.stringify(messages));
+
+                    // 重新渲染
+                    renderMessages();
+                    renderTicker();
+
+                    console.log(`✅ 同步完成，新增 ${newMessages.length} 条留言`);
+
+                    // 只有真的有新留言时才显示提示
+                    showMessage(`发现了 ${newMessages.length} 条新留言！`, 'success');
+                } else {
+                    console.log('📝 没有新留言需要同步');
+                }
             } else {
-                console.log('📝 服务器没有新留言');
+                console.log('📝 服务器没有留言数据');
             }
 
         } catch (error) {
             console.error('同步失败:', error);
-            showMessage('同步失败，请检查网络连接', 'warning');
+            // 同步失败时不显示错误提示，避免打扰用户
         }
     }
 
@@ -597,9 +644,65 @@ function initMessageSystem() {
         try {
             const response = await fetch('/api/health');
             const result = await response.json();
+            updateSyncStatus(true);
             return result.success;
         } catch (error) {
+            updateSyncStatus(false);
             return false;
+        }
+    }
+
+    // 更新同步状态显示
+    function updateSyncStatus(isOnline) {
+        if (syncStatus) {
+            if (isOnline) {
+                syncStatus.textContent = '在线';
+                syncStatus.className = 'sync-status online';
+            } else {
+                syncStatus.textContent = '离线';
+                syncStatus.className = 'sync-status offline';
+            }
+        }
+    }
+
+    // 手动刷新留言
+    async function manualRefreshMessages() {
+        if (!refreshButton) return;
+
+        try {
+            // 显示加载状态
+            refreshButton.classList.add('loading');
+            refreshButton.disabled = true;
+            const originalContent = refreshButton.innerHTML;
+            refreshButton.innerHTML = '<i data-lucide="loader-2"></i> 刷新中...';
+
+            // 重新初始化图标
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+
+            // 执行同步
+            if (await checkServerStatus()) {
+                await syncWithServer();
+            } else {
+                showMessage('服务器不可用，使用本地留言', 'warning');
+            }
+
+        } catch (error) {
+            console.error('刷新留言失败:', error);
+            showMessage('刷新失败，请重试', 'error');
+        } finally {
+            // 恢复按钮状态
+            setTimeout(() => {
+                refreshButton.classList.remove('loading');
+                refreshButton.disabled = false;
+                refreshButton.innerHTML = originalContent;
+
+                // 重新初始化图标
+                if (typeof lucide !== 'undefined') {
+                    lucide.createIcons();
+                }
+            }, 500);
         }
     }
 
@@ -858,21 +961,56 @@ function initMessageSystem() {
 
     // 检查服务器状态并在可用时同步
     async function initializeMessages() {
-        // 初始渲染本地留言
-        renderMessages();
-        renderTicker();
-
-        // 检查服务器是否可用
+        // 首先尝试从服务器加载留言
         const serverAvailable = await checkServerStatus();
+
         if (serverAvailable) {
-            console.log('🌐 服务器可用，尝试同步留言...');
-            // 延迟一点时间再同步，避免影响页面加载
-            setTimeout(() => {
-                syncWithServer();
-            }, 1000);
+            console.log('🌐 服务器可用，优先从服务器加载留言...');
+            try {
+                const serverMessages = await loadMessagesFromServer();
+
+                if (serverMessages && serverMessages.length > 0) {
+                    // 如果服务器有留言，直接使用服务器数据
+                    messages = serverMessages;
+
+                    // 备份到localStorage
+                    localStorage.setItem('messages', JSON.stringify(messages));
+
+                    // 渲染服务器留言
+                    renderMessages();
+                    renderTicker();
+
+                    console.log(`✅ 从服务器加载了 ${messages.length} 条留言`);
+                } else {
+                    // 服务器为空，使用本地留言
+                    console.log('📝 服务器为空，使用本地存储');
+                    renderMessages();
+                    renderTicker();
+                }
+            } catch (error) {
+                console.error('从服务器加载留言失败:', error);
+                // 出错时使用本地留言
+                renderMessages();
+                renderTicker();
+            }
         } else {
             console.log('📱 服务器不可用，使用本地存储');
+            renderMessages();
+            renderTicker();
         }
+
+        // 定期同步（每30秒检查一次新留言）
+        setInterval(async () => {
+            if (await checkServerStatus()) {
+                await syncWithServer();
+            }
+        }, 30000);
+    }
+
+    // 添加刷新按钮事件监听
+    if (refreshButton) {
+        refreshButton.addEventListener('click', manualRefreshMessages);
+        console.log('✅ 刷新按钮事件监听已添加');
     }
 
     // 初始化留言系统

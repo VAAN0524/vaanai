@@ -883,6 +883,75 @@ body::after {
     margin: 0 auto;
 }
 
+.message-header-controls {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.refresh-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: rgba(102, 126, 234, 0.1);
+    border: 1px solid rgba(102, 126, 234, 0.3);
+    border-radius: 8px;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.refresh-button:hover {
+    background: rgba(102, 126, 234, 0.2);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: translateY(-1px);
+}
+
+.refresh-button:active {
+    transform: translateY(0);
+}
+
+.refresh-button i {
+    width: 16px;
+    height: 16px;
+    transition: transform 0.5s ease;
+}
+
+.refresh-button.loading i {
+    animation: spin 1s linear infinite;
+}
+
+.sync-status {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sync-status.online {
+    color: #10b981;
+}
+
+.sync-status.offline {
+    color: #f59e0b;
+}
+
+.sync-status::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
 .message-form {
     background: var(--bg-card);
     padding: 2.5rem;
@@ -1323,7 +1392,7 @@ body::after {
         opacity: 1;
     }
     100% {
-        transform: scale(32); /* 扩大16倍，从8倍改为32倍（总共4倍放大） */
+        transform: scale(8); /* 缩小4倍，从32倍改为8倍（原始大小） */
         opacity: 0;
     }
 }

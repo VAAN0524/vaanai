@@ -190,6 +190,13 @@
                 访客留言
             </h2>
             <div class="message-content">
+                <div class="message-header-controls">
+                    <button id="refreshMessages" class="refresh-button" title="刷新留言">
+                        <i data-lucide="refresh-cw"></i>
+                        刷新留言
+                    </button>
+                    <span id="syncStatus" class="sync-status"></span>
+                </div>
                 <form id="messageForm" class="message-form">
                     <div class="form-group">
                         <input type="text" id="name" placeholder="您的昵称（最多20个字符）" required maxlength="20">
