@@ -471,62 +471,35 @@ function initMessageSystem() {
         console.log('滚动条渲染完成');
     }
 
-    // 获取地理位置（多个API源，提高成功率）
+    // 获取地理位置（简化版本，保护隐私）
     async function getUserLocation() {
-        const apis = [
-            {
-                url: 'https://ipapi.co/json/',
-                parser: (data) => ({
-                    ip: data.ip,
-                    location: data.city ? `${data.city}, ${data.country_name}` : data.country_name
-                })
-            },
-            {
-                url: 'https://api.ipify.org?format=json',
-                parser: (data) => ({
-                    ip: data.ip,
-                    location: '未知地区'
-                })
-            }
-        ];
+        try {
+            // 使用单个快速API，减少请求次数
+            const response = await fetch('https://ipapi.co/json/', {
+                signal: AbortSignal.timeout(5000),
+                mode: 'cors'
+            });
 
-        for (const api of apis) {
-            try {
-                console.log(`尝试获取地理位置，使用API: ${api.url}`);
-
-                // 使用 AbortController 设置超时
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const response = await fetch(api.url, {
-                    signal: controller.signal,
-                    mode: 'cors'
-                });
-
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-
+            if (response.ok) {
                 const data = await response.json();
-                const result = api.parser(data);
 
-                console.log('地理位置获取成功:', result);
-                return {
-                    ip: result.ip || '未知',
-                    location: result.location || '未知地区'
-                };
+                // 简化地理位置信息，只保留城市和国家
+                const location = data.city ? `${data.city}, ${data.country_name}` : data.country_name || '未知地区';
 
-            } catch (error) {
-                console.warn(`API ${api.url} 失败:`, error.message);
-                continue;
+                // IP地址掩码处理：显示前两段和后一段
+                const ip = data.ip ? data.ip.split('.').slice(0, 2).join('.***.***.') + data.ip.split('.').slice(-1) : '未知';
+
+                console.log('地理位置获取成功（保护隐私模式）:', location);
+
+                return { ip, location };
             }
+        } catch (error) {
+            console.warn('地理位置获取失败，使用默认值:', error.message);
         }
 
-        console.log('所有地理位置API都失败，使用默认值');
+        // 返回通用信息，保护用户隐私
         return {
-            ip: generateRandomIP(),
+            ip: '***.***.***', // 完全隐藏IP
             location: '未知地区'
         };
     }

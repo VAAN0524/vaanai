@@ -17,22 +17,40 @@ class ConfigHelper {
     needsConfiguration() {
         const hostname = window.location.hostname;
 
-        // 开发环境下始终显示配置选项（可选）
+        // 开发环境不显示配置弹窗
         if (hostname === 'localhost' || hostname === '127.0.0.1') {
-            return false; // 开发环境已预配置，不显示弹窗
+            return false;
         }
 
         // 检查是否有有效配置
         const hasToken = localStorage.getItem('github_token');
         const hasRepo = localStorage.getItem('github_repo');
 
-        // 如果配置了默认token和repo，不显示弹窗
-        if (hasToken === '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' &&
-            hasRepo === 'VAAN0524/test') {
+        // 预设配置检查
+        const defaultToken = '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';
+        const defaultRepo = 'VAAN0524/test';
+
+        // 如果已配置为预设值，不显示弹窗
+        if (hasToken === defaultToken && hasRepo === defaultRepo) {
+            console.log('✅ 检测到预设配置，跳过配置弹窗');
             return false;
         }
 
-        return !hasToken || !hasRepo;
+        // 如果没有配置或配置不匹配，需要显示弹窗
+        const needsConfig = !hasToken || !hasRepo ||
+                            hasToken !== defaultToken ||
+                            hasRepo !== defaultRepo;
+
+        if (needsConfig) {
+            console.log('⚠️ 需要配置GitHub信息', {
+                hasToken: !!hasToken,
+                hasRepo: !!hasRepo,
+                tokenMatch: hasToken === defaultToken,
+                repoMatch: hasRepo === defaultRepo
+            });
+        }
+
+        return needsConfig;
     }
 
     showConfigModal() {
@@ -233,6 +251,24 @@ class ConfigHelper {
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
+    // 首先设置预设配置（在创建ConfigHelper之前）
+    const defaultToken = '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';
+    const defaultRepo = 'VAAN0524/test';
+
+    // 检查是否已配置，如果没有则设置预设值
+    const currentToken = localStorage.getItem('github_token');
+    const currentRepo = localStorage.getItem('github_repo');
+
+    if (!currentToken) {
+        localStorage.setItem('github_token', defaultToken);
+        console.log('✅ 已设置默认 GitHub Token');
+    }
+
+    if (!currentRepo) {
+        localStorage.setItem('github_repo', defaultRepo);
+        console.log('✅ 已设置默认 GitHub 仓库');
+    }
+
     // 等待主要脚本加载完成
     setTimeout(() => {
         window.configHelper = new ConfigHelper();

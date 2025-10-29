@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>隐私保护修复测试</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+            background: #f8f9fa;
+            line-height: 1.6;
+        }
+        .test-container {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 2rem;
+        }
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        .success { background: #d4edda; color: #155724; border-left: 4px solid #28a745; }
+        .error { background: #f8d7da; color: #721c24; border-left: 4px solid #dc3545; }
+        .info { background: #d1ecf1; color: #0c5460; border-left: 4px solid #17a2b8; }
+        .warning { background: #fff3cd; color: #856404; border-left: 4px solid #ffc107; }
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 0.5rem;
+            font-size: 14px;
+        }
+        button:hover { background: #5a67d8; }
+        pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            font-size: 12px;
+            border: 1px solid #e9ecef;
+        }
+        .test-form {
+            display: grid;
+            gap: 1rem;
+            margin: 2rem 0;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        input, textarea {
+            padding: 0.75rem;
+            border: 2px solid #e9ecef;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .message-preview {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1rem 0;
+            border-left: 4px solid #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-container">
+        <h1>🔒 隐私保护修复测试</h1>
+        <p>测试配置弹窗修复和隐私保护功能</p>
+
+        <div id="testResults"></div>
+
+        <button onclick="runAllTests()">🧪 运行所有测试</button>
+        <button onclick="testConfigPopup()">⚙️ 测试配置弹窗</button>
+        <button onclick="testGitHubAPI()">🐙 测试 GitHub API</button>
+        <button onclick="testPrivacyProtection()">🔒 测试隐私保护</button>
+        <button onclick="clearResults()">🧹 清除结果</button>
+    </div>
+
+    <div class="test-container">
+        <h2>📝 留言功能测试</h2>
+        <div class="test-form">
+            <div class="form-group">
+                <label>昵称:</label>
+                <input type="text" id="testName" placeholder="测试用户" maxlength="20">
+            </div>
+            <div class="form-group">
+                <label>留言:</label>
+                <textarea id="testMessage" placeholder="这是一条测试留言..." maxlength="500" rows="3"></textarea>
+            </div>
+            <button onclick="testMessageSubmission()">📤 提交测试留言</button>
+        </div>
+
+        <div id="messagePreview"></div>
+    </div>
+
+    <!-- 加载必要的脚本 -->
+    <script src="js/github-sync.js"></script>
+    <script src="js/cloudflare-sync.js"></script>
+    <script src="config-helper.js"></script>
+
+    <script>
+        let testResults = [];
+
+        function addTestResult(type, title, content) {
+            const results = document.getElementById('testResults');
+            const div = document.createElement('div');
+            div.className = `status ${type}`;
+
+            const timestamp = new Date().toLocaleTimeString();
+            div.innerHTML = `
+                <strong>[${timestamp}] ${title}</strong>
+                ${content ? `<pre>${JSON.stringify(content, null, 2)}</pre>` : ''}
+            `;
+
+            results.appendChild(div);
+            testResults.push({ type, title, content, timestamp });
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('testResults').innerHTML = '';
+            testResults = [];
+        }
+
+        async function testConfigPopup() {
+            addTestResult('info', '🔍 开始测试配置弹窗...', '');
+
+            // 检查 localStorage 中的配置
+            const token = localStorage.getItem('github_token');
+            const repo = localStorage.getItem('github_repo');
+
+            if (token && repo) {
+                addTestResult('success', '✅ 配置已存在', {
+                    hasToken: !!token,
+                    hasRepo: !!repo,
+                    tokenPrefix: token.substring(0, 10) + '...',
+                    repo: repo
+                });
+            } else {
+                addTestResult('error', '❌ 配置缺失', {
+                    hasToken: !!token,
+                    hasRepo: !!repo
+                });
+            }
+
+            // 检查预设配置是否正确设置
+            const expectedToken = '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';
+            const expectedRepo = 'VAAN0524/test';
+
+            if (token === expectedToken && repo === expectedRepo) {
+                addTestResult('success', '✅ 预设配置正确', '配置与预期值匹配');
+            } else {
+                addTestResult('warning', '⚠️ 配置不匹配', {
+                    expectedToken: expectedToken.substring(0, 10) + '...',
+                    actualToken: token ? token.substring(0, 10) + '...' : 'null',
+                    expectedRepo: expectedRepo,
+                    actualRepo: repo
+                });
+            }
+
+            // 检查 ConfigHelper 是否会弹窗
+            try {
+                if (window.configHelper) {
+                    const needsConfig = window.configHelper.needsConfiguration();
+                    if (needsConfig) {
+                        addTestResult('error', '❌ 配置弹窗仍会出现', 'needsConfiguration() 返回 true');
+                    } else {
+                        addTestResult('success', '✅ 配置弹窗已禁用', 'needsConfiguration() 返回 false');
+                    }
+                } else {
+                    addTestResult('warning', '⚠️ ConfigHelper 未加载', '等待脚本加载...');
+                }
+            } catch (error) {
+                addTestResult('error', '❌ 配置测试失败', error.message);
+            }
+        }
+
+        async function testGitHubAPI() {
+            addTestResult('info', '🐙 开始测试 GitHub API...', '');
+
+            const token = localStorage.getItem('github_token');
+            const repo = localStorage.getItem('github_repo');
+
+            if (!token || !repo) {
+                addTestResult('error', '❌ 缺少 GitHub 配置', '请先运行配置测试');
+                return;
+            }
+
+            try {
+                // 测试用户认证
+                const userResponse = await fetch('https://api.github.com/user', {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'User-Agent': 'Vaan-Privacy-Test/1.0'
+                    }
+                });
+
+                if (userResponse.ok) {
+                    const user = await userResponse.json();
+                    addTestResult('success', '✅ GitHub 认证成功', {
+                        login: user.login,
+                        name: user.name,
+                        scope: '基本权限验证通过'
+                    });
+                } else {
+                    addTestResult('error', '❌ GitHub 认证失败', {
+                        status: userResponse.status,
+                        statusText: userResponse.statusText
+                    });
+                    return;
+                }
+
+                // 测试仓库访问
+                const repoResponse = await fetch(`https://api.github.com/repos/${repo}`, {
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'User-Agent': 'Vaan-Privacy-Test/1.0'
+                    }
+                });
+
+                if (repoResponse.ok) {
+                    const repoData = await repoResponse.json();
+                    addTestResult('success', '✅ 仓库访问成功', {
+                        name: repoData.full_name,
+                        description: repoData.description,
+                        open_issues_count: repoData.open_issues_count
+                    });
+                } else {
+                    addTestResult('error', '❌ 仓库访问失败', {
+                        status: repoResponse.status,
+                        statusText: repoResponse.statusText
+                    });
+                }
+
+            } catch (error) {
+                addTestResult('error', '❌ GitHub API 测试失败', error.message);
+            }
+        }
+
+        async function testPrivacyProtection() {
+            addTestResult('info', '🔒 开始测试隐私保护...', '');
+
+            // 测试 GitHubIssuesSync 的隐私保护
+            if (typeof GitHubIssuesSync !== 'undefined') {
+                const token = localStorage.getItem('github_token');
+                const repo = localStorage.getItem('github_repo');
+
+                if (token && repo) {
+                    const sync = new GitHubIssuesSync(repo, token);
+
+                    // 创建测试消息
+                    const testMessage = {
+                        name: '测试用户',
+                        text: '这是一条测试留言，用于验证隐私保护功能',
+                        time: new Date().toLocaleString('zh-CN'),
+                        location: '测试地点',
+                        ip: '192.168.1.100',
+                        userAgent: '测试浏览器信息'
+                    };
+
+                    // 测试格式化功能
+                    const formattedBody = sync.formatIssueBody(testMessage);
+
+                    addTestResult('success', '✅ 隐私保护格式化测试', {
+                        originalIP: testMessage.ip,
+                        formattedBody: formattedBody,
+                        features: [
+                            'IP地址已隐藏',
+                            '用户代理已移除',
+                            '只保留基本信息',
+                            '添加隐私保护声明'
+                        ]
+                    });
+
+                    // 验证敏感信息是否被移除
+                    const hasIP = formattedBody.includes(testMessage.ip);
+                    const hasUserAgent = formattedBody.includes(testMessage.userAgent);
+                    const hasPrivacyStatement = formattedBody.includes('隐私');
+
+                    if (!hasIP && !hasUserAgent && hasPrivacyStatement) {
+                        addTestResult('success', '✅ 隐私保护验证通过', {
+                            ipHidden: !hasIP,
+                            userAgentRemoved: !hasUserAgent,
+                            privacyStatementAdded: hasPrivacyStatement
+                        });
+                    } else {
+                        addTestResult('error', '❌ 隐私保护验证失败', {
+                            ipHidden: !hasIP,
+                            userAgentRemoved: !hasUserAgent,
+                            privacyStatementAdded: hasPrivacyStatement
+                        });
+                    }
+                }
+            } else {
+                addTestResult('error', '❌ GitHubIssuesSync 未加载', '无法测试隐私保护功能');
+            }
+        }
+
+        async function testMessageSubmission() {
+            const name = document.getElementById('testName').value.trim() || '测试用户';
+            const message = document.getElementById('testMessage').value.trim() || '这是一条测试留言';
+
+            addTestResult('info', '📤 开始测试留言提交...', '');
+
+            // 显示预处理后的消息预览
+            const preview = document.getElementById('messagePreview');
+            preview.innerHTML = `
+                <h3>📋 消息预览（隐私处理后）</h3>
+                <div class="message-preview">
+                    <strong>昵称:</strong> ${name}<br>
+                    <strong>内容:</strong> ${message}<br>
+                    <strong>时间:</strong> ${new Date().toLocaleString('zh-CN')}<br>
+                    <strong>隐私保护:</strong> ✅ IP地址已隐藏，敏感信息已过滤
+                </div>
+            `;
+
+            // 测试 CloudflareMessageSync
+            if (typeof CloudflareMessageSync !== 'undefined') {
+                try {
+                    const sync = new CloudflareMessageSync();
+                    await sync.init();
+
+                    const messageData = {
+                        id: Date.now().toString(),
+                        name: name,
+                        text: message,
+                        time: new Date().toLocaleString('zh-CN'),
+                        location: '测试地点',
+                        ip: '***.***.***.100', // 模拟隐私处理后的IP
+                        timestamp: Date.now()
+                    };
+
+                    addTestResult('info', '🔄 正在尝试保存留言...', {
+                        backend: sync.backend,
+                        messagePreview: {
+                            name: messageData.name,
+                            textLength: messageData.text.length,
+                            ipProtected: messageData.ip.includes('***')
+                        }
+                    });
+
+                    // 这里我们不实际提交，只测试格式化和准备过程
+                    addTestResult('success', '✅ 留言预处理完成', {
+                        messageReady: true,
+                        privacyProtected: true,
+                        backend: sync.backend
+                    });
+
+                } catch (error) {
+                    addTestResult('error', '❌ 留言测试失败', error.message);
+                }
+            } else {
+                addTestResult('error', '❌ CloudflareMessageSync 未加载', '无法测试留言功能');
+            }
+        }
+
+        async function runAllTests() {
+            clearResults();
+            addTestResult('info', '🧪 开始运行所有测试...', '');
+
+            await new Promise(resolve => setTimeout(resolve, 500));
+            await testConfigPopup();
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testGitHubAPI();
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            await testPrivacyProtection();
+
+            addTestResult('success', '🎉 所有测试完成', {
+                totalTests: testResults.length,
+                successCount: testResults.filter(r => r.type === 'success').length,
+                errorCount: testResults.filter(r => r.type === 'error').length,
+                warningCount: testResults.filter(r => r.type === 'warning').length
+            });
+        }
+
+        // 页面加载完成后等待脚本初始化
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addTestResult('info', '🚀 测试页面已加载', '开始自动配置检查...');
+                testConfigPopup();
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

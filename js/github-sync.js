@@ -82,14 +82,13 @@ class GitHubIssuesSync {
         }
     }
 
-    // 格式化 Issue 内容
+    // 格式化 Issue 内容（简化版本，保护隐私）
     formatIssueBody(message) {
-        return `## 留言信息
+        return `## 访客留言
 
 **昵称:** ${message.name}
 **时间:** ${message.time}
-**IP地址:** ${message.ip}
-**地理位置:** ${message.location}
+**地点:** ${message.location}
 
 ---
 ### 留言内容
@@ -97,30 +96,28 @@ class GitHubIssuesSync {
 ${message.text}
 
 ---
-*此留言由 Vaan 个人主页自动创建*
+*此留言由 Vaan 个人主页自动收集*
 
-**用户代理:** ${navigator.userAgent}
-**页面URL:** ${window.location.href}`;
+*为了保护隐私，部分敏感信息已被隐藏*`;
     }
 
-    // 解析 Issue 为留言格式
+    // 解析 Issue 为留言格式（简化版本）
     parseIssueToMessage(issue) {
         const bodyMatch = issue.body.match(/\*\*昵称:\*\* (.+?)(?=\n|\r)/);
         const timeMatch = issue.body.match(/\*\*时间:\*\* (.+?)(?=\n|\r)/);
-        const ipMatch = issue.body.match(/\*\*IP地址:\*\* (.+?)(?=\n|\r)/);
-        const locationMatch = issue.body.match(/\*\*地理位置:\*\* (.+?)(?=\n|\r)/);
+        const locationMatch = issue.body.match(/\*\*地点:\*\* (.+?)(?=\n|\r)/);
         const contentMatch = issue.body.match(/### 留言内容\n\n(.+?)(?=\n---)/);
 
         return {
             id: issue.id,
-            name: bodyMatch ? bodyMatch[1].trim() : '未知',
-            text: contentMatch ? contentMatch[1].trim() : issue.body,
-            time: timeMatch ? timeMatch[1].trim() : new Date(issue.created_at).toLocaleString(),
-            ip: ipMatch ? ipMatch[1].trim() : '未知',
-            location: locationMatch ? locationMatch[1].trim() : '未知地区',
+            name: bodyMatch ? bodyMatch[1].trim() : '访客',
+            text: contentMatch ? contentMatch[1].trim() : issue.body.substring(0, 200) + '...',
+            time: timeMatch ? timeMatch[1].trim() : new Date(issue.created_at).toLocaleString('zh-CN'),
+            location: locationMatch ? locationMatch[1].trim() : '未知地点',
             githubUrl: issue.html_url,
             createdAt: issue.created_at,
-            isGitHub: true
+            isGitHub: true,
+            ip: '***' // 隐藏IP地址
         };
     }
 
