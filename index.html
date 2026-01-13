@@ -12,10 +12,25 @@
     <script src="config-helper.js"></script>
 </head>
 <body>
-    <nav class="navbar">
+    <!-- 水波纹容器 -->
+    <div class="ripple-container" id="rippleContainer"></div>
+
+    <!-- 粒子背景 -->
+    <div class="particles" id="particles">
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+        <div class="particle"></div>
+    </div>
+
+    <!-- 导航栏 -->
+    <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="#" class="logo">
-                <i data-lucide="sparkles" class="logo-icon"></i>
+                <div class="logo-badge">
+                    <i data-lucide="sparkles"></i>
+                </div>
                 <span>Vaan</span>
             </a>
             <ul class="nav-menu">
@@ -28,9 +43,8 @@
             </ul>
         </div>
     </nav>
-    
-    <div class="particles" id="particles"></div>
 
+    <!-- Hero 区域 -->
     <section id="hero" class="hero">
         <div class="hero-content">
             <div class="avatar-container">
@@ -49,12 +63,12 @@
                 <i data-lucide="arrow-down" class="btn-icon"></i>
             </a>
         </div>
-        <div class="hero-background"></div>
         <div class="scroll-indicator">
             <i data-lucide="chevron-down"></i>
         </div>
     </section>
 
+    <!-- 关于我 -->
     <section id="about" class="section">
         <div class="container">
             <h2 class="section-title">
@@ -62,17 +76,18 @@
                 我是谁
             </h2>
             <div class="about-content">
-                <div class="about-card">
-                    <div class="about-icon">
+                <div class="card">
+                    <div class="card-icon">
                         <i data-lucide="smile"></i>
                     </div>
-                    <h3 class="about-name">Vaan</h3>
-                    <p class="about-desc">一个热爱学习与探索的开发者</p>
+                    <h3>Vaan</h3>
+                    <p>一个热爱学习与探索的开发者</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- 技能 -->
     <section id="skills" class="section section-alt">
         <div class="container">
             <h2 class="section-title">
@@ -80,8 +95,8 @@
                 我的技能
             </h2>
             <div class="skills-content">
-                <div class="skill-card">
-                    <div class="skill-icon">
+                <div class="card">
+                    <div class="card-icon">
                         <i data-lucide="rocket"></i>
                     </div>
                     <h3>持续学习</h3>
@@ -90,8 +105,8 @@
                         <div class="progress-bar" style="--progress: 60%"></div>
                     </div>
                 </div>
-                <div class="skill-card">
-                    <div class="skill-icon">
+                <div class="card">
+                    <div class="card-icon">
                         <i data-lucide="book-open"></i>
                     </div>
                     <h3>知识探索</h3>
@@ -100,8 +115,8 @@
                         <div class="progress-bar" style="--progress: 50%"></div>
                     </div>
                 </div>
-                <div class="skill-card">
-                    <div class="skill-icon">
+                <div class="card">
+                    <div class="card-icon">
                         <i data-lucide="zap"></i>
                     </div>
                     <h3>快速迭代</h3>
@@ -114,6 +129,7 @@
         </div>
     </section>
 
+    <!-- 作品 -->
     <section id="works" class="section">
         <div class="container">
             <h2 class="section-title">
@@ -122,27 +138,46 @@
             </h2>
             <div class="works-content">
                 <div class="work-item">
-                    <div class="work-placeholder">
+                    <div class="work-image">
                         <i data-lucide="package"></i>
-                        <p>待上传</p>
+                    </div>
+                    <div class="work-content">
+                        <h3>待上传</h3>
+                        <p>项目正在整理中，敬请期待</p>
+                        <div class="work-tags">
+                            <span class="work-tag">筹备中</span>
+                        </div>
                     </div>
                 </div>
                 <div class="work-item">
-                    <div class="work-placeholder">
+                    <div class="work-image">
                         <i data-lucide="layers"></i>
-                        <p>筹备中</p>
+                    </div>
+                    <div class="work-content">
+                        <h3>筹备中</h3>
+                        <p>更多精彩内容即将呈现</p>
+                        <div class="work-tags">
+                            <span class="work-tag">开发中</span>
+                        </div>
                     </div>
                 </div>
                 <div class="work-item">
-                    <div class="work-placeholder">
+                    <div class="work-image">
                         <i data-lucide="git-branch"></i>
-                        <p>开发中</p>
+                    </div>
+                    <div class="work-content">
+                        <h3>开发中</h3>
+                        <p>持续迭代，不断优化</p>
+                        <div class="work-tags">
+                            <span class="work-tag">进行中</span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- 愿景 -->
     <section id="vision" class="section section-alt">
         <div class="container">
             <h2 class="section-title">
@@ -150,15 +185,19 @@
                 愿景使命
             </h2>
             <div class="vision-content">
-                <div class="vision-card">
-                    <i data-lucide="lightbulb" class="vision-icon"></i>
-                    <p class="vision-text">这是一个测试网页</p>
-                    <p class="vision-desc">探索技术的无限可能</p>
+                <div class="card">
+                    <div class="card-icon">
+                        <i data-lucide="lightbulb"></i>
+                    </div>
+                    <h3>探索技术</h3>
+                    <p>这是一个测试网页</p>
+                    <p style="margin-top: 0.5rem;">探索技术的无限可能</p>
                 </div>
             </div>
         </div>
     </section>
 
+    <!-- 联系 -->
     <section id="contact" class="section">
         <div class="container">
             <h2 class="section-title">
@@ -166,14 +205,14 @@
                 联系方式
             </h2>
             <div class="contact-content">
-                <div class="contact-item">
+                <div class="contact-card">
                     <div class="contact-icon">
                         <i data-lucide="mail"></i>
                     </div>
                     <h3>电子邮箱</h3>
                     <a href="mailto:448484359@163.com">448484359@163.com</a>
                 </div>
-                <div class="contact-item">
+                <div class="contact-card">
                     <div class="contact-icon">
                         <i data-lucide="message-square"></i>
                     </div>
@@ -187,6 +226,7 @@
         </div>
     </section>
 
+    <!-- 留言 -->
     <section id="message" class="section section-alt">
         <div class="container">
             <h2 class="section-title">
@@ -194,21 +234,15 @@
                 访客留言
             </h2>
             <div class="message-content">
-                <form id="messageForm" class="message-form">
+                <form id="messageForm" class="card" style="text-align: left; align-items: stretch;">
                     <div class="form-group">
                         <input type="text" id="name" placeholder="您的昵称（最多20个字符）" required maxlength="20">
-                        <div class="input-icon">
-                            <i data-lucide="user"></i>
-                        </div>
                         <div class="char-counter">
                             <span id="nameCounter">0</span>/20
                         </div>
                     </div>
                     <div class="form-group">
                         <textarea id="messageText" placeholder="留下您的留言...（最多500个字符）" required maxlength="500" rows="4"></textarea>
-                        <div class="input-icon">
-                            <i data-lucide="edit-3"></i>
-                        </div>
                         <div class="char-counter">
                             <span id="messageTextCounter">0</span>/500
                         </div>
@@ -223,7 +257,7 @@
         </div>
     </section>
 
-    
+    <!-- 页脚 -->
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
