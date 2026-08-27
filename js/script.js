@@ -54,15 +54,16 @@ function initHeroParticles() {
 
     const isCJK = /[\u4e00-\u9fff]/.test(text);
     let fontSize = Math.min(
-      W * 0.80 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
-      H * 0.30
+      W * 0.85 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
+      H * 0.42
     );
-    fontSize = Math.max(fontSize, 60);
+    fontSize = Math.max(fontSize, 80);
     octx.font = `900 ${fontSize}px -apple-system,"PingFang SC","STXingkai",sans-serif`;
     octx.fillStyle = '#fff';
     octx.textAlign = 'center';
     octx.textBaseline = 'middle';
-    octx.fillText(text, W / 2, H / 2);
+    // 文字中心点偏上（给底部按钮留空间）
+    octx.fillText(text, W / 2, H * 0.38);
     const imgData = octx.getImageData(0, 0, W, H).data;
 
     // 自适应步长，保持总点数在 600~1500 之间

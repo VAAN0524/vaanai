@@ -2193,3 +2193,12 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     background: rgba(0,217,255,.1);
     color: var(--accent);
 }
+
+/* ── Hero 布局修复：按钮在底部独立，粒子占满 ── */
+.hero-cta {
+    position: absolute;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 2;
+}
