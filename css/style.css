@@ -115,6 +115,7 @@ body {
 
 /* 渐变网格背景 - 彩虹色 */
 .bg-grid {
+    display: none; /* Canvas 替代 */
     position: fixed;
     top: 0;
     left: 0;
