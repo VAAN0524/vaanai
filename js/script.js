@@ -161,46 +161,69 @@ function initHeroParticles() {
     }
   }
 
-  // 状态机：CONVERGE(聚合) → HOLD(停留) → DISPERSE(缓散) → CONVERGE(next)…
-  // 三阶段，DISPERSE 结束时弹簧力渐增直接衔接 CONVERGE，无独立 DRIFT 状态
-  const STATE = { CONVERGE: 0, HOLD: 1, DISPERSE: 2 };
-  let state = STATE.CONVERGE;
+  // ── Curl noise 流场（用于消散阶段的有机运动）──
+  function h2(x, y) {
+    return (Math.sin(x * 127.1 + y * 311.7) * 43758.5453 % 1 + 1) % 1;
+  }
+  function n2(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    return h2(ix,iy)*(1-ux)*(1-uy)+h2(ix+1,iy)*ux*(1-uy)
+         + h2(ix,iy+1)*(1-ux)*uy+h2(ix+1,iy+1)*ux*uy;
+  }
+  function curlFx(x, y, t) {
+    const e = 0.4;
+    return (n2(x, y + e + t) - n2(x, y - e + t)) / (2 * e);
+  }
+  function curlFy(x, y, t) {
+    const e = 0.4;
+    return -(n2(x + e, y + t) - n2(x - e, y + t)) / (2 * e);
+  }
+
+  // 状态机（单一流：morphing 持续运行，无"定格"概念）
+  // 每个粒子有独立的 delay → 错峰聚合/散开，像风吹散墨迹
+  const STATE = { FORM: 0, HOLD: 1, SCATTER: 2 };
+  let state = STATE.FORM;
   let wordIdx = 0;
   let stateTimer = 0;
-  let wobbleAmp = 0;    // 呼吸振幅（从 0 渐增）
-  let attractFactor = 1; // 弹簧力系数（DISPERSE 末尾从 0 渐增回 1）
-  let globalAlpha = 0.85; // 全局透明度（连续变化，不跳）
+
+  // 给每个粒子分配错峰延迟（0~50 帧），散开和聚合都按 delay 错开
+  for (const p of particles) {
+    p.delay = Math.floor(Math.random() * 50);
+    p.stiffness = 0.015 + Math.random() * 0.04; // 可变弹簧刚度 → 到达速度不同
+    p.dampV = 0.90 + Math.random() * 0.06;     // 可变阻尼
+  }
 
   assignTargets(HERO_WORDS[0]);
 
   function drawHero(t) {
     ctx.clearRect(0, 0, W, H);
-    const cx = W / 2, cy = H * 0.42;
+    const flowT = t * 0.0002;
 
     switch (state) {
-      case STATE.CONVERGE: {
+      case STATE.FORM: {
         stateTimer++;
-        // 弹簧力从 attractFactor（可能<1）平滑恢复到 1
-        attractFactor = Math.min(1, attractFactor + 0.04);
+        // 可聚合的粒子数（按 delay 错峰解锁）
+        const unlocked = Math.min(FIXED_N, stateTimer * (FIXED_N / 45));
 
-        for (const p of particles) {
-          const e = p.ease * attractFactor;
-          p.x += (p.tx - p.x) * e;
-          p.y += (p.ty - p.y) * e;
+        for (let i = 0; i < FIXED_N; i++) {
+          const p = particles[i];
 
-          // 呼吸振幅在聚合完成后渐增（此处保持当前值）
-          const bx = p.x + Math.sin(t * 0.0012 + p.ease * 100) * wobbleAmp * 0.3;
-          const by = p.y + Math.cos(t * 0.0009 + p.ease * 70) * wobbleAmp * 0.2;
+          if (i < unlocked) {
+            // 可变刚度弹簧 + curl 微扰 → 每个粒子路径独特，不成群直线
+            const wob = curlFx(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
+            const wob2 = curlFy(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
 
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
-          ctx.fillRect(bx, by, p.sz, p.sz);
+            p.x += (p.tx - p.x) * p.stiffness + wob * (1 - Math.min(1, stateTimer / 60));
+            p.y += (p.ty - p.y) * p.stiffness + wob2 * (1 - Math.min(1, stateTimer / 60));
+          }
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
+          ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
 
-        // 90% 到位 → HOLD
-        const settled = particles.filter(p =>
-          Math.abs(p.tx - p.x) < 3 && Math.abs(p.ty - p.y) < 3
-        ).length;
-        if (settled > FIXED_N * 0.9) {
+        // 全部粒子到达（渐近判定：时间够长即视为完成，不做 settled 检查避免状态跳变）
+        if (stateTimer > 130) {
           state = STATE.HOLD;
           stateTimer = 0;
         }
@@ -209,78 +232,70 @@ function initHeroParticles() {
 
       case STATE.HOLD: {
         stateTimer++;
-        // 呼吸振幅从 0 极缓增至最大值（完全无突跳）
-        wobbleAmp = Math.min(1.4, stateTimer * 0.01);
 
         for (const p of particles) {
-          const seed = p.ease * 100;
-          const bx = p.tx + Math.sin(t * 0.0012 + seed) * wobbleAmp;
-          const by = p.ty + Math.cos(t * 0.0009 + seed * 0.7) * wobbleAmp * 0.7;
-
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
+          // 微呼吸
+          const bx = p.x + Math.sin(t * 0.0015 + p.stiffness * 500) * 0.6;
+          const by = p.y + Math.cos(t * 0.0012 + p.stiffness * 300) * 0.5;
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
           ctx.fillRect(bx, by, p.sz, p.sz);
         }
 
-        // 停留 ~2s 后 → 开始缓散
-        if (stateTimer > 120) {
-          state = STATE.DISPERSE;
+        // 停留 ~1.8s → 散开（在进入 SCATTER 前不赋速度，SCATTER 内按 delay 错峰赋）
+        if (stateTimer > 110) {
+          state = STATE.SCATTER;
           stateTimer = 0;
-          // 粒子从当前位置向外缓慢漂移（速度基于当前位置→零瞬移）
+          // 为每个粒子准备散开方向（但不是现在就动——等 delay 解锁后才动）
           for (const p of particles) {
-            const dx = p.x - cx, dy = p.y - cy;
-            const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-            const speed = 0.2 + Math.random() * 0.3;
-            p.vx = (dx/dist) * speed + (Math.random() - 0.5) * 0.4;
-            p.vy = (dy/dist) * speed + (Math.random() - 0.5) * 0.4;
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 0.4 + Math.random() * 0.8;
+            p.vx = Math.cos(ang) * spd;
+            p.vy = Math.sin(ang) * spd - 0.1; // 微上飘
           }
         }
         break;
       }
 
-      case STATE.DISPERSE: {
+      case STATE.SCATTER: {
         stateTimer++;
-        // 呼吸振幅缓慢衰减（和渐增对称）
-        wobbleAmp = Math.max(0, wobbleAmp - 0.02);
 
-        // 散开进行到 60% 时，静默切换目标（粒子此时已散开，无视觉跳变）
-        if (stateTimer === 40) {
+        // 散开到 65% 时切换下一个词的目标
+        if (stateTimer === 50) {
           wordIdx = (wordIdx + 1) % HERO_WORDS.length;
           assignTargets(HERO_WORDS[wordIdx]);
-          // 弹簧力从 0 开始渐增（下一阶段 CONVERGE 会继续增大到 1）
-          attractFactor = 0;
         }
 
-        // 40 帧后弹簧力开始渐增（与随机漂移叠加 → 无缝拉向新目标）
-        if (stateTimer > 40) {
-          attractFactor = Math.min(0.3, (stateTimer - 40) * 0.01);
-        }
+        // 65 帧后弹簧力渐增（和散开惯性叠加 → 平滑转向聚合）
+        const attractRamp = stateTimer > 65 ? Math.min(1, (stateTimer - 65) / 50) : 0;
 
-        for (const p of particles) {
-          // 继续漂移（速度逐渐衰减）
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vx *= 0.98;
-          p.vy *= 0.98;
+        for (let i = 0; i < FIXED_N; i++) {
+          const p = particles[i];
 
-          // 微弱随机扰动
-          p.x += (Math.random() - 0.5) * 0.3;
-          p.y += (Math.random() - 0.5) * 0.3;
+          // 按 delay 错峰散开（前 delay 帧保持不动 → 文字逐渐"融化"而非撕裂）
+          if (stateTimer > p.delay) {
+            // curl noise 流场驱动 → 有机多变轨迹，非直线
+            const fx = curlFx(p.x * 0.005, p.y * 0.005, flowT) * 0.8;
+            const fy = curlFy(p.x * 0.005, p.y * 0.005, flowT) * 0.8;
+            p.vx = p.vx * 0.96 + fx * 0.15;
+            p.vy = p.vy * 0.96 + fy * 0.15;
+            p.x += p.vx;
+            p.y += p.vy;
 
-          // 弹簧力渐增后开始被新目标吸引
-          if (attractFactor > 0) {
-            const e = p.ease * attractFactor;
-            p.x += (p.tx - p.x) * e;
-            p.y += (p.ty - p.y) * e;
+            // 弹簧力渐增后开始拉向新目标（与流场叠加）
+            if (attractRamp > 0) {
+              p.x += (p.tx - p.x) * p.stiffness * attractRamp;
+              p.y += (p.ty - p.y) * p.stiffness * attractRamp;
+            }
           }
 
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
           ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
 
-        // 散开+渐拉 ~1.5s 后 → 正式进入聚合（弹簧力继续恢复到 1）
-        if (stateTimer > 80) {
-          state = STATE.CONVERGE;
-          stateTimer = 0;
+        // 散开+转向 ~3s 后 → 进入 FORM（弹簧力已是全力，无缝继续聚合）
+        if (stateTimer > 170) {
+          state = STATE.FORM;
+          stateTimer = 45; // FORM 前 45 帧的 unlock 已覆盖全部粒子，直接全力聚合
         }
         break;
       }
