@@ -71,28 +71,70 @@ function initHeroParticles() {
     const offc = document.createElement('canvas');
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
-    const isCJK = /[\u4e00-\u9fff\u2713\u2716\u25c6]/.test(text);
-    let fontSize = Math.min(
-      W * 0.82 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
-      H * 0.42
-    );
-    fontSize = Math.max(fontSize, 80);
-    octx.font = `900 ${fontSize}px -apple-system,"PingFang SC","STXingkai",sans-serif`;
-    octx.fillStyle = '#fff';
-    octx.textAlign = 'center';
-    octx.textBaseline = 'middle';
-    octx.fillText(text, W / 2, H * 0.38);
-    const imgData = octx.getImageData(0, 0, W, H).data;
+    const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
 
-    let step = 3;
-    let pts = [];
-    do {
-      pts = [];
-      for (let y = 0; y < H; y += step)
-        for (let x = 0; x < W; x += step)
-          if (imgData[(y * W + x) * 4 + 3] > 80) pts.push(x, y);
-      if (pts.length / 2 > 2000) step++;
-    } while (pts.length / 2 > 2000 && step < 25);
+    // 智能换行：CJK 可任意字符断行，英文按空格分词
+    function wrapText(t, maxW) {
+      const hasCJK = /[\u4e00-\u9fff]/.test(t);
+      const lines = [];
+      let cur = '';
+      if (hasCJK || !t.includes(' ')) {
+        for (const ch of t) {
+          const test = cur + ch;
+          if (octx.measureText(test).width > maxW && cur) { lines.push(cur); cur = ch; }
+          else cur = test;
+        }
+      } else {
+        for (const w of t.split(/\s+/)) {
+          const test = cur ? cur + ' ' + w : w;
+          if (octx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
+          else cur = test;
+        }
+      }
+      if (cur) lines.push(cur);
+      return lines;
+    }
+
+    // 自适应字号：迭代缩放直到文字能放入指定区域
+    const maxW = W * 0.85, maxH = H * 0.48;
+    let fs = Math.min(W * 0.8 / Math.max(text.length * 0.55, 1), H * 0.35, 260);
+    fs = Math.max(fs, 28);
+
+    let lines;
+    for (let iter = 0; iter < 15; iter++) {
+      octx.font = `900 ${fs}px ${fonts}`;
+      lines = wrapText(text, maxW);
+      const lineH = fs * 1.2;
+      const totalH = lines.length * lineH;
+      let maxLineW = 0;
+      for (const l of lines) maxLineW = Math.max(maxLineW, octx.measureText(l).width);
+      if (maxLineW <= maxW && totalH <= maxH) break;
+      const ratio = Math.min(maxW / Math.max(maxLineW,1), maxH / Math.max(totalH,1)) * 0.92;
+      fs = Math.max(fs * ratio, 24);
+      if (fs <= 24) break;
+    }
+
+    // 用最终字号重新换行并逐行采样像素点
+    octx.font = `900 ${fs}px ${fonts}`;
+    lines = wrapText(text, maxW);
+    const lineH = fs * 1.2;
+    const startY = H * 0.38 - ((lines.length - 1) * lineH) / 2;
+
+    const pts = [];
+    for (let li = 0; li < lines.length; li++) {
+      octx.clearRect(0, 0, W, H);
+      octx.font = `900 ${fs}px ${fonts}`;
+      octx.fillStyle = '#fff';
+      octx.textAlign = 'center';
+      octx.textBaseline = 'middle';
+      octx.fillText(lines[li], W / 2, startY + li * lineH);
+
+      const imgData = octx.getImageData(0, 0, W, H).data;
+      const step = Math.max(3, Math.floor(fs / 40));
+      for (let py = 0; py < H; py += step)
+        for (let px = 0; px < W; px += step)
+          if (imgData[(py * W + px) * 4 + 3] > 80) pts.push(px, py);
+    }
     return pts;
   }
 
