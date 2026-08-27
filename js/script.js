@@ -111,10 +111,12 @@ function initHeroParticles() {
     }
 
     // ── Step 1: 二分搜索最大能放入安全区的字号 ──
+    // 目标中心：水平居中，垂直稍偏上（给底部按钮留空间但不大）
     const targetCX = W / 2;
-    const targetCY = H * 0.40;
+    const targetCY = H * 0.44;
 
-    let lo = 20, hi = Math.min(W * 0.8, H * 0.5);
+    // 放宽尺寸限制：宽度 92%、高度 60%（充分利用屏幕空间）
+    let lo = 20, hi = Math.min(W * 0.95, H * 0.65);
     let bestFs = lo;
 
     while (lo <= hi) {
@@ -122,8 +124,8 @@ function initHeroParticles() {
       drawAt(mid, targetCX, targetCY);
       const bb = scanBBox();
 
-      // 验证实际渲染包围盒在画布内（有最少 5% 边距）
-      const paddingX = W * 0.05, paddingY = H * 0.05;
+      // 只保留左右 4%、上下 10% 的边距
+      const paddingX = W * 0.04, paddingY = H * 0.10;
       const fits =
         bb.minX >= paddingX && bb.maxX <= W - paddingX &&
         bb.minY >= paddingY && bb.maxY <= H - paddingY;
@@ -159,53 +161,63 @@ function initHeroParticles() {
     }
   }
 
-  // 状态机：CONVERGE(聚合) → HOLD(停留) → DISPERSE(缓散) → DRIFT(打乱) → CONVERGE(next)…
-  // 同一批粒子永不清除，从上一个词的位置自然过渡到下一个词
-  const STATE = { CONVERGE: 0, HOLD: 1, DISPERSE: 2, DRIFT: 3 };
+  // 状态机：CONVERGE(聚合) → HOLD(停留) → DISPERSE(缓散) → CONVERGE(next)…
+  // 三阶段，DISPERSE 结束时弹簧力渐增直接衔接 CONVERGE，无独立 DRIFT 状态
+  const STATE = { CONVERGE: 0, HOLD: 1, DISPERSE: 2 };
   let state = STATE.CONVERGE;
   let wordIdx = 0;
   let stateTimer = 0;
-  let wobbleAmp = 0; // 呼吸振幅（从 0 渐增，避免突跳）
+  let wobbleAmp = 0;    // 呼吸振幅（从 0 渐增）
+  let attractFactor = 1; // 弹簧力系数（DISPERSE 末尾从 0 渐增回 1）
+  let globalAlpha = 0.85; // 全局透明度（连续变化，不跳）
 
   assignTargets(HERO_WORDS[0]);
 
   function drawHero(t) {
     ctx.clearRect(0, 0, W, H);
-    const cx = W / 2, cy = H * 0.38;
+    const cx = W / 2, cy = H * 0.42;
 
     switch (state) {
       case STATE.CONVERGE: {
-        // 弹簧向目标收敛
+        stateTimer++;
+        // 弹簧力从 attractFactor（可能<1）平滑恢复到 1
+        attractFactor = Math.min(1, attractFactor + 0.04);
+
         for (const p of particles) {
-          p.x += (p.tx - p.x) * p.ease;
-          p.y += (p.ty - p.y) * p.ease;
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.85)`;
-          ctx.fillRect(p.x, p.y, p.sz, p.sz);
+          const e = p.ease * attractFactor;
+          p.x += (p.tx - p.x) * e;
+          p.y += (p.ty - p.y) * e;
+
+          // 呼吸振幅在聚合完成后渐增（此处保持当前值）
+          const bx = p.x + Math.sin(t * 0.0012 + p.ease * 100) * wobbleAmp * 0.3;
+          const by = p.y + Math.cos(t * 0.0009 + p.ease * 70) * wobbleAmp * 0.2;
+
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
+          ctx.fillRect(bx, by, p.sz, p.sz);
         }
-        // 大部分到位 → 进入停留
+
+        // 90% 到位 → HOLD
         const settled = particles.filter(p =>
           Math.abs(p.tx - p.x) < 3 && Math.abs(p.ty - p.y) < 3
         ).length;
         if (settled > FIXED_N * 0.9) {
           state = STATE.HOLD;
           stateTimer = 0;
-          wobbleAmp = 0; // 呼吸振幅从零开始
         }
         break;
       }
 
       case STATE.HOLD: {
         stateTimer++;
-        // 呼吸振幅从 0 极缓增至 1.2px（完全无突跳）
-        wobbleAmp = Math.min(1.2, stateTimer * 0.008);
+        // 呼吸振幅从 0 极缓增至最大值（完全无突跳）
+        wobbleAmp = Math.min(1.4, stateTimer * 0.01);
 
         for (const p of particles) {
           const seed = p.ease * 100;
           const bx = p.tx + Math.sin(t * 0.0012 + seed) * wobbleAmp;
           const by = p.ty + Math.cos(t * 0.0009 + seed * 0.7) * wobbleAmp * 0.7;
-          const [r, g, b] = p.color;
-          const flicker = 0.82 + 0.18 * Math.sin(t * 0.003 + seed * 3);
-          ctx.fillStyle = `rgba(${r},${g},${b},${flicker.toFixed(2)})`;
+
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
           ctx.fillRect(bx, by, p.sz, p.sz);
         }
 
@@ -213,76 +225,62 @@ function initHeroParticles() {
         if (stateTimer > 120) {
           state = STATE.DISPERSE;
           stateTimer = 0;
-          // 给每个粒子一个从当前位置出发的缓慢漂移速度（一次赋值，非瞬移）
+          // 粒子从当前位置向外缓慢漂移（速度基于当前位置→零瞬移）
           for (const p of particles) {
             const dx = p.x - cx, dy = p.y - cy;
             const dist = Math.sqrt(dx*dx + dy*dy) || 1;
-            // 外扩 + 随机扰动
-            const speed = 0.3 + Math.random() * 0.4;
-            p.vx = (dx/dist) * speed + (Math.random() - 0.5) * 0.6;
-            p.vy = (dy/dist) * speed + (Math.random() - 0.5) * 0.6;
+            const speed = 0.2 + Math.random() * 0.3;
+            p.vx = (dx/dist) * speed + (Math.random() - 0.5) * 0.4;
+            p.vy = (dy/dist) * speed + (Math.random() - 0.5) * 0.4;
           }
         }
         break;
       }
 
       case STATE.DISPERSE: {
-        // 缓散：粒子从文字位置向外慢慢漂走（无涡心瞬移）
         stateTimer++;
-        for (const p of particles) {
-          p.x += p.vx;
-          p.y += p.vy;
-          p.vx *= 0.985; // 很慢的减速
-          p.vy *= 0.985;
+        // 呼吸振幅缓慢衰减（和渐增对称）
+        wobbleAmp = Math.max(0, wobbleAmp - 0.02);
 
-          // 加微弱 sin 扰动让漂移更有机
-          const wobbleA = Math.sin(p.x * 0.008 + t * 0.0006) * 0.15;
-          p.x += Math.cos(wobbleA) * 0.1;
-          p.y += Math.sin(wobbleA) * 0.1;
-
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.6)`;
-          ctx.fillRect(p.x, p.y, p.sz, p.sz);
-        }
-
-        // 漂散 ~1s 后 → 进入打乱阶段
-        if (stateTimer > 60) {
-          state = STATE.DRIFT;
-          stateTimer = 0;
-          // 此时不做任何操作，粒子保持当前位置继续随机漂移
-        }
-        break;
-      }
-
-      case STATE.DRIFT: {
-        // 打乱：粒子在当前位置附近自然游走（随机漫步），不受力
-        stateTimer++;
-
-        // 打乱进行到一半（~15 帧）时，静默切换到下一个词的目标
-        // 粒子此时已散开，弹簧力会自然地将它们拉向新位置
-        if (stateTimer === 20) {
+        // 散开进行到 60% 时，静默切换目标（粒子此时已散开，无视觉跳变）
+        if (stateTimer === 40) {
           wordIdx = (wordIdx + 1) % HERO_WORDS.length;
           assignTargets(HERO_WORDS[wordIdx]);
+          // 弹簧力从 0 开始渐增（下一阶段 CONVERGE 会继续增大到 1）
+          attractFactor = 0;
+        }
+
+        // 40 帧后弹簧力开始渐增（与随机漂移叠加 → 无缝拉向新目标）
+        if (stateTimer > 40) {
+          attractFactor = Math.min(0.3, (stateTimer - 40) * 0.01);
         }
 
         for (const p of particles) {
-          // 随机漫步（每个粒子独立扰动）
-          p.x += (Math.random() - 0.5) * 0.8;
-          p.y += (Math.random() - 0.5) * 0.8;
+          // 继续漂移（速度逐渐衰减）
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.98;
+          p.vy *= 0.98;
 
-          // 20 帧后开始逐渐被新目标吸引（弹簧力渐增 → 无缝过渡）
-          if (stateTimer > 20) {
-            const attract = Math.min(1, (stateTimer - 20) / 20) * p.ease;
-            p.x += (p.tx - p.x) * attract;
-            p.y += (p.ty - p.y) * attract;
+          // 微弱随机扰动
+          p.x += (Math.random() - 0.5) * 0.3;
+          p.y += (Math.random() - 0.5) * 0.3;
+
+          // 弹簧力渐增后开始被新目标吸引
+          if (attractFactor > 0) {
+            const e = p.ease * attractFactor;
+            p.x += (p.tx - p.x) * e;
+            p.y += (p.ty - p.y) * e;
           }
 
-          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.6)`;
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},${globalAlpha.toFixed(2)})`;
           ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
 
-        // 打乱 ~1s 后 → 正式进入聚合状态
-        if (stateTimer > 55) {
+        // 散开+渐拉 ~1.5s 后 → 正式进入聚合（弹簧力继续恢复到 1）
+        if (stateTimer > 80) {
           state = STATE.CONVERGE;
+          stateTimer = 0;
         }
         break;
       }
