@@ -13,131 +13,189 @@ document.addEventListener('DOMContentLoaded', () => {
     window.messageSync = new CloudflareMessageSync();
   }
 
-  heroParticleName();
-  animateCounters();
+  initHeroParticles();
   initRippleSystem();
   initMessageSystem();
   initSmoothScroll();
 });
 
-// ── Hero 粒子文字显现 ──
-function heroParticleName() {
+// ── Hero 粒子循环轮播 ──
+const HERO_WORDS = [
+  'Vaan',
+  'AI Builder',
+  '数字造物者',
+  '518 Skills',
+  '用代码构建',
+  '28 Projects',
+  '从粒子到现实',
+  '开 源 · 分 享',
+];
+
+function initHeroParticles() {
   const canvas = document.getElementById('heroCanvas');
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  const heroEl = canvas.closest('.hero') || canvas.parentElement;
-  const W = canvas.width = heroEl.offsetWidth;
-  const H = canvas.height = heroEl.offsetHeight;
+  let W, H;
 
-  const text = 'Vaan';
-  const fontSize = Math.min(W * 0.18, H * 0.35, 180);
+  function resize() {
+    W = canvas.width = canvas.parentElement.offsetWidth;
+    H = canvas.height = canvas.parentElement.offsetHeight;
+  }
+  resize();
+  window.addEventListener('resize', resize);
 
-  // 离屏渲染文字获取像素采样点
-  const offc = document.createElement('canvas');
-  offc.width = W; offc.height = H;
-  const octx = offc.getContext('2d');
-  octx.font = `900 ${fontSize}px -apple-system,sans-serif`;
-  octx.fillStyle = '#fff';
-  octx.textAlign = 'center';
-  octx.textBaseline = 'middle';
-  octx.fillText(text, W / 2, H / 2);
-  const imgData = octx.getImageData(0, 0, W, H).data;
+  const COLORS = [[0,217,255],[108,92,231],[247,148,161],[255,202,87],[72,219,133],[159,122,237]];
 
-  // 自适应步长确保总点数在合理范围
-  let step = 4;
-  let pts = [];
-  do {
-    pts = [];
-    for (let y = 0; y < H; y += step)
-      for (let x = 0; x < W; x += step)
-        if (imgData[(y * W + x) * 4 + 3] > 128) pts.push(x, y);
-    step++;
-  } while (pts.length / 2 > 1200);
+  // 自适应采样指定文字的像素点
+  function getPoints(text) {
+    const offc = document.createElement('canvas');
+    offc.width = W; offc.height = H;
+    const octx = offc.getContext('2d');
 
-  // 粒子从随机位置飞向文字位置
-  const particles = [];
-  const COLORS = [[0,217,255],[108,92,231],[247,148,161],[255,202,87],[72,219,133]];
-  for (let i = 0; i < pts.length; i += 2) {
-    particles.push({
-      sx: Math.random() * W,
-      sy: Math.random() * H,
-      tx: pts[i],
-      ty: pts[i+1],
-      cx: 0, cy: 0,   // current
-      ease: 0.04 + Math.random() * 0.05,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      arrived: false,
-    });
+    const isCJK = /[\u4e00-\u9fff]/.test(text);
+    let fontSize = Math.min(
+      W * 0.80 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
+      H * 0.30
+    );
+    fontSize = Math.max(fontSize, 60);
+    octx.font = `900 ${fontSize}px -apple-system,"PingFang SC","STXingkai",sans-serif`;
+    octx.fillStyle = '#fff';
+    octx.textAlign = 'center';
+    octx.textBaseline = 'middle';
+    octx.fillText(text, W / 2, H / 2);
+    const imgData = octx.getImageData(0, 0, W, H).data;
+
+    // 自适应步长，保持总点数在 600~1500 之间
+    let step = 3;
+    let pts = [];
+    do {
+      pts = [];
+      for (let y = 0; y < H; y += step)
+        for (let x = 0; x < W; x += step)
+          if (imgData[(y * W + x) * 4 + 3] > 100) pts.push(x, y);
+      if (pts.length / 2 > 1500) step++;
+    } while (pts.length / 2 > 1500 && step < 20);
+
+    return pts;
   }
 
-  let frame = 0;
-  const MAX_FRAMES = 200;
-  let fadeOut = false;
+  // 状态机
+  const STATE = { FORMING: 0, HOLDING: 1, DISSOLVING: 2, GAP: 3 };
+  let state = STATE.FORMING;
+  let wordIdx = 0;
+  let holdTimer = 0;
+  let gapTimer = 0;
+  let particles = [];
+  let globalAlpha = 0;
 
-  function draw() {
+  function spawnFor(word) {
+    const pts = getPoints(word);
+    particles = [];
+    for (let i = 0; i < pts.length; i += 2) {
+      particles.push({
+        cx: Math.random() * W,
+        cy: Math.random() * H,
+        tx: pts[i],
+        ty: pts[i+1],
+        ease: 0.03 + Math.random() * 0.04,
+        color: COLORS[Math.floor(Math.random() * COLORS.length)],
+        sz: 1 + Math.random() * 1.5,
+      });
+    }
+    globalAlpha = 0;
+  }
+
+  function drawHero(t) {
     ctx.clearRect(0, 0, W, H);
-    frame++;
 
-    let allArrived = true;
-    for (const p of particles) {
-      if (!p.arrived) {
-        p.cx += (p.tx - p.cx) * p.ease;
-        p.cy += (p.ty - p.cy) * p.ease;
-        p.ease *= 1.005; // 加速
-        if (Math.abs(p.tx - p.cx) < 1 && Math.abs(p.ty - p.cy) < 1) p.arrived = true;
-        allArrived = false;
-      } else {
-        p.cx += (p.tx - p.cx); // stay
-        p.cy += (p.ty - p.cy);
+    switch(state) {
+      case STATE.FORMING: {
+        globalAlpha = Math.min(1, globalAlpha + 0.02);
+        let allArrived = true;
+        for (const p of particles) {
+          p.cx += (p.tx - p.cx) * p.ease;
+          p.cy += (p.ty - p.cy) * p.ease;
+          p.ease *= 1.008;
+          if (Math.abs(p.tx-p.cx)>1 || Math.abs(p.ty-p.cy)>1) allArrived = false;
+          const [r,g,b] = p.color;
+          ctx.fillStyle = `rgba(${r},${g},${b},${(globalAlpha*0.85).toFixed(2)})`;
+          ctx.fillRect(p.cx, p.cy, p.sz, p.sz);
+        }
+        if (allArrived) { state = STATE.HOLDING; holdTimer = 0; }
+        break;
       }
-
-      const [r,g,b] = p.color;
-      const alpha = p.arrived ? 0.9 : 0.5;
-      ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
-      ctx.fillRect(p.cx, p.cy, 2, 2);
-    }
-
-    // 到位后短暂停留，然后淡出让 HTML 文字接管
-    if ((allArrived && frame > 60) || frame > MAX_FRAMES) {
-      if (!fadeOut) {
-        fadeOut = true;
-        // 渐隐粒子
-        let opacity = 1;
-        const fade = () => {
-          opacity -= 0.02;
-          ctx.clearRect(0, 0, W, H);
-          ctx.globalAlpha = Math.max(0, opacity);
+      case STATE.HOLDING: {
+        holdTimer++;
+        // 微微浮动
+        const breatheAmp = 0.8;
+        for (const p of particles) {
+          const bx = p.tx + Math.sin(t*0.001 + p.ease*100)*breatheAmp;
+          const by = p.ty + Math.cos(t*0.001 + p.ease*50)*breatheAmp;
+          const [r,g,b] = p.color;
+          const flicker = 0.7 + 0.3*Math.sin(t*0.002 + p.ease*200);
+          ctx.fillStyle = `rgba(${r},${g},${b},${(globalAlpha*flicker).toFixed(2)})`;
+          ctx.fillRect(bx, by, p.sz, p.sz);
+        }
+        if (holdTimer > 120) { // ~2 秒
+          state = STATE.DISSOLVING;
+          // 给每个粒子随机逃逸方向
           for (const p of particles) {
-            const [r,g,b] = p.color;
-            ctx.fillStyle = `rgba(${r},${g},${b},0.8)`;
-            ctx.fillRect(p.cx, p.cy, 2, 2);
+            p.ex = p.tx + (Math.random()-0.5)*W*1.2;
+            p.ey = p.ty + (Math.random()>0.5 ? 1 : -1) * H * Math.random();
+            p.dEase = 0.01 + Math.random()*0.02;
           }
-          ctx.globalAlpha = 1;
-          if (opacity > 0) requestAnimationFrame(fade);
-        };
-        fade();
-        return;
+        }
+        break;
+      }
+      case STATE.DISSOLVING: {
+        globalAlpha -= 0.015;
+        for (const p of particles) {
+          p.cx += (p.ex - p.cx) * p.dEase;
+          p.cy += (p.ey - p.cy) * p.dEase;
+          const [r,g,b] = p.color;
+          ctx.fillStyle = `rgba(${r},${g},${b},${Math.max(0,globalAlpha).toFixed(2)})`;
+          ctx.fillRect(p.cx, p.cy, p.sz, p.sz);
+        }
+        if (globalAlpha <= 0) {
+          state = STATE.GAP;
+          gapTimer = 0;
+          particles = [];
+        }
+        break;
+      }
+      case STATE.GAP: {
+        gapTimer++;
+        if (gapTimer > 30) { // 0.5s 空白间隔
+          wordIdx = (wordIdx + 1) % HERO_WORDS.length;
+          spawnFor(HERO_WORDS[wordIdx]);
+          state = STATE.FORMING;
+        }
+        break;
       }
     }
-
-    if (!fadeOut) requestAnimationFrame(draw);
   }
 
-  draw();
-}
+  // 启动循环
+  spawnFor(HERO_WORDS[0]);
 
-// ── 数字滚动动画 ──
-function animateCounters() {
-  document.querySelectorAll('.stat-num').forEach(el => {
-    const target = parseInt(el.dataset.count);
-    let current = 0;
-    const increment = target / 50;
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) { current = target; clearInterval(timer); }
-      el.textContent = Math.floor(current).toLocaleString();
-    }, 30);
-  });
+  function loop(t) {
+    resize_if_needed();
+    drawHero(t);
+    requestAnimationFrame(loop);
+  }
+
+  let lastW = W, lastH = H;
+  function resize_if_needed() {
+    if (canvas.parentElement.offsetWidth !== lastW || canvas.parentElement.offsetHeight !== lastH) {
+      resize();
+      lastW = W; lastH = H;
+      spawnFor(HERO_WORDS[wordIdx]); // resize 后重新生成当前词
+      state = STATE.FORMING;
+      globalAlpha = 0;
+    }
+  }
+
+  requestAnimationFrame(loop);
 }
 
 // ── 水波纹 ──
