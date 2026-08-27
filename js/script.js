@@ -43,7 +43,7 @@ function initHeroParticles() {
     [0,217,255],[108,92,231],[247,148,161],[255,202,87],
     [72,219,133],[159,122,237],[255,118,117],
   ];
-  const FIXED_N = 3000;
+  const FIXED_N = 5000;
   const MAX_SAMPLE_POINTS = Math.floor(FIXED_N * 0.9); // 确保目标点数 < 粒子数 → 全覆盖
 
   // 初始化固定粒子池
@@ -56,7 +56,7 @@ function initHeroParticles() {
       tx: 0, ty: 0,
       ease: 0.03 + Math.random() * 0.05,
       color: COLORS[i % COLORS.length],
-      sz: 1.8 + Math.random() * 2.2,   // 更大更清晰
+      sz: 2.2 + Math.random() * 2.0,   // 更大 → 文字笔画粗实
       swirlR: 60 + Math.random() * 200, // 混乱旋转半径
       swirlA: Math.random() * Math.PI * 2,
       swirlSpd: 0.04 + Math.random() * 0.05,
@@ -215,8 +215,9 @@ function initHeroParticles() {
             const wob = curlFx(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
             const wob2 = curlFy(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
 
-            p.x += (p.tx - p.x) * p.stiffness + wob * (1 - Math.min(1, stateTimer / 60));
-            p.y += (p.ty - p.y) * p.stiffness + wob2 * (1 - Math.min(1, stateTimer / 60));
+            const curlFade = Math.max(0, 1 - stateTimer / 40); // 40帧内扰动归零 → 文字清晰锁定
+            p.x += (p.tx - p.x) * p.stiffness + wob * curlFade;
+            p.y += (p.ty - p.y) * p.stiffness + wob2 * curlFade;
           }
           ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
           ctx.fillRect(p.x, p.y, p.sz, p.sz);
