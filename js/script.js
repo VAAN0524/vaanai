@@ -48,7 +48,8 @@ function initHeroParticles() {
     [0,217,255],[108,92,231],[247,148,161],[255,202,87],
     [72,219,133],[159,122,237],[255,118,117],
   ];
-  const FIXED_N = 900; // 固定粒子池，永不增减
+  const FIXED_N = 900;
+  const MAX_SAMPLE_POINTS = Math.floor(FIXED_N * 0.9); // 确保目标点数 < 粒子数 → 全覆盖
 
   // 初始化固定粒子池
   const particles = [];
@@ -73,15 +74,19 @@ function initHeroParticles() {
     const octx = offc.getContext('2d');
     const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
 
-    // 从 ImageData 中提取非透明像素坐标
+    // 从 ImageData 中提取非透明像素坐标（限制总数 ≤ MAX_SAMPLE_POINTS）
     function extractPoints() {
       const imgData = octx.getImageData(0, 0, W, H).data;
-      const pts = [];
-      const step = 3;
-      for (let py = 0; py < H; py += step)
-        for (let px = 0; px < W; px += step)
-          if (imgData[(py * W + px) * 4 + 3] > 60)
-            pts.push(px, py);
+      let pts = [];
+      let step = 3;
+      do {
+        pts = [];
+        for (let py = 0; py < H; py += step)
+          for (let px = 0; px < W; px += step)
+            if (imgData[(py * W + px) * 4 + 3] > 60)
+              pts.push(px, py);
+        if (pts.length / 2 > MAX_SAMPLE_POINTS) step++;
+      } while (pts.length / 2 > MAX_SAMPLE_POINTS && step < 40);
       return pts;
     }
 
