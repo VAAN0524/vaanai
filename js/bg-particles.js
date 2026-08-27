@@ -116,3 +116,41 @@
     }
   }, 1500);
 })();
+
+// ── 网格交点电弧火花 ──
+(function gridSparks() {
+  const layer = document.getElementById('electricLayer');
+  if (!layer) return;
+  const GRID = 60;
+
+  function spawnSpark() {
+    // 随机对齐到网格交点
+    const gx = Math.floor(Math.random() * (innerWidth / GRID)) * GRID;
+    const gy = Math.floor(Math.random() * (innerHeight / GRID)) * GRID;
+
+    const el = document.createElement('div');
+    // 30% 概率十字电弧，70% 圆形火花
+    const isCross = Math.random() > 0.7;
+    el.className = 'grid-spark' + (isCross ? ' cross' : '');
+    el.style.left = (gx - 8) + 'px';
+    el.style.top = (gy - 8) + 'px';
+    layer.appendChild(el);
+    setTimeout(() => el.remove(), 1000);
+  }
+
+  // 初始
+  for (let i = 0; i < 8; i++) setTimeout(spawnSpark, i * 400);
+
+  // 持续随机
+  setInterval(() => {
+    if (document.visibilityState === 'visible') spawnSpark();
+  }, 800);
+
+  // 偶尔触发电弧连发（3~5 个同时闪烁）
+  setInterval(() => {
+    if (document.visibilityState !== 'visible' || Math.random() > 0.25) return;
+    for (let i = 0; i < 3 + Math.floor(Math.random() * 3); i++) {
+      setTimeout(spawnSpark, i * 150);
+    }
+  }, 5000);
+})();

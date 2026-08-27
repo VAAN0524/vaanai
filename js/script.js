@@ -113,10 +113,10 @@ function initHeroParticles() {
     // ── Step 1: 二分搜索最大能放入安全区的字号 ──
     // 目标中心：水平居中，垂直稍偏上（给底部按钮留空间但不大）
     const targetCX = W / 2;
-    const targetCY = H * 0.44;
+    const targetCY = H * 0.48;
 
     // 放宽尺寸限制：宽度 92%、高度 60%（充分利用屏幕空间）
-    let lo = 20, hi = Math.min(W * 0.95, H * 0.65);
+    let lo = 20, hi = Math.min(W, H);
     let bestFs = lo;
 
     while (lo <= hi) {
@@ -125,10 +125,9 @@ function initHeroParticles() {
       const bb = scanBBox();
 
       // 只保留左右 4%、上下 10% 的边距
-      const paddingX = W * 0.04, paddingY = H * 0.10;
       const fits =
-        bb.minX >= paddingX && bb.maxX <= W - paddingX &&
-        bb.minY >= paddingY && bb.maxY <= H - paddingY;
+        bb.minX >= 0 && bb.maxX <= W &&
+        bb.minY >= 0 && bb.maxY <= H;
 
       if (fits) { bestFs = mid; lo = mid + 1; }
       else { hi = mid - 1; }

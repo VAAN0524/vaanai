@@ -2472,3 +2472,51 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     background-origin: border-box;
     background-clip: padding-box, border-box;
 }
+
+/* ── 网格交点电弧火花 ── */
+.grid-spark {
+    position: absolute;
+    width: 3px;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 50%;
+    box-shadow: 0 0 8px var(--accent), 0 0 16px var(--accent);
+    opacity: 0;
+    pointer-events: none;
+    animation: spark-burst 0.8s ease-out forwards;
+}
+@keyframes spark-burst {
+    0% { opacity: 1; transform: scale(0.5); }
+    30% { opacity: 1; transform: scale(2.5); box-shadow: 0 0 12px var(--accent), 0 0 30px #a78bfa; }
+    60% { opacity: 0.4; transform: scale(1); }
+    100% { opacity: 0; transform: scale(0.3); }
+}
+
+/* 十字电弧（更炫的电火花）*/
+.grid-spark.cross {
+    width: 16px; height: 16px;
+    background: transparent;
+    border-radius: 0;
+    box-shadow: none;
+}
+.grid-spark.cross::before,
+.grid-spark.cross::after {
+    content: '';
+    position: absolute;
+    background: var(--accent);
+    filter: drop-shadow(0 0 3px var(--accent));
+}
+.grid-spark.cross::before {
+    width: 16px; height: 1px;
+    top: 50%; left: 0;
+}
+.grid-spark.cross::after {
+    width: 1px; height: 16px;
+    left: 50%; top: 0;
+}
+@keyframes spark-cross {
+    0% { opacity: 1; transform: scale(0.3) rotate(0deg); }
+    50% { opacity: 0.8; transform: scale(1.5) rotate(45deg); }
+    100% { opacity: 0; transform: scale(0.5) rotate(90deg); }
+}
+.grid-spark.cross { animation: spark-cross 0.6s ease-out forwards; }
