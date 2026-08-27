@@ -3,236 +3,204 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vaan - 个人主页</title>
-
-    <!-- SEO -->
-    <meta name="description" content="Vaan 的个人主页 — 一个热爱学习与探索的开发者。展示技能、作品和联系方式。">
-    <meta name="keywords" content="Vaan,开发者,个人主页,portfolio">
-    <meta property="og:title" content="Vaan - 个人主页">
-    <meta property="og:description" content="一个热爱学习与探索的开发者">
+    <title>Vaan · 数字造物者</title>
+    <meta name="description" content="Vaan 的数字宇宙 — AI 媒体管线、数字人、开发工具链。用代码构建，用粒子书写。">
+    <meta name="keywords" content="Vaan,AI,digital human,developer,MCP,Go,Vue3">
+    <meta property="og:title" content="Vaan · Digital Builder">
+    <meta property="og:description" content="AI 媒体管线、实时数字人、开发工具链。用粒子构建的数字存在。">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://vaan.pages.dev">
-
-    <!-- 性能：预连接 CDN -->
     <link rel="preconnect" href="https://unpkg.com">
-
-    <!-- 样式 -->
     <link rel="stylesheet" href="css/style.css">
-
-    <!-- Lucide 图标（固定版本 + defer，不阻塞渲染） -->
     <script defer src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
-    <!-- 背景层 -->
-    <div class="bg-grid"></div>
-    <div class="bg-glow bg-glow-1"></div>
-    <div class="bg-glow bg-glow-2"></div>
-    <div class="bg-glow bg-glow-3"></div>
 
-    <!-- 水波纹容器 -->
-    <div class="ripple-container" id="rippleContainer"></div>
+<!-- 粒子背景画布 -->
+<canvas id="bgCanvas" aria-hidden="true"></canvas>
 
-    <!-- 粒子背景 -->
-    <div class="particles" id="particles">
-        <div class="particle"></div><div class="particle"></div>
-        <div class="particle"></div><div class="particle"></div>
-        <div class="particle"></div><div class="particle"></div>
-        <div class="particle"></div><div class="particle"></div>
+<!-- 背景层 -->
+<div class="bg-grid"></div>
+<div class="bg-glow bg-glow-1"></div>
+<div class="bg-glow bg-glow-2"></div>
+<div class="ripple-container" id="rippleContainer"></div>
+
+<!-- 导航 -->
+<nav class="navbar" id="navbar">
+    <div class="nav-container">
+        <a href="#" class="logo"><div class="logo-badge"><i data-lucide="sparkles"></i></div><span>Vaan</span></a>
+        <ul class="nav-menu">
+            <li><a href="#hero">首页</a></li>
+            <li><a href="#projects">项目</a></li>
+            <li><a href="#skills">能力</a></li>
+            <li><a href="#contact">联系</a></li>
+            <li><a href="#message">留言</a></li>
+        </ul>
     </div>
+</nav>
 
-    <!-- 导航栏 -->
-    <nav class="navbar" id="navbar">
-        <div class="nav-container">
-            <a href="#" class="logo">
-                <div class="logo-badge"><i data-lucide="sparkles"></i></div>
-                <span>Vaan</span>
+<!-- Hero — 名字从粒子中浮现 -->
+<section id="hero" class="hero">
+    <canvas id="heroCanvas"></canvas>
+    <div class="hero-content">
+        <p class="hero-tagline">构建于粒子之上</p>
+        <h1 class="hero-title"><span id="particleName"></span></h1>
+        <p class="hero-subtitle">AI 媒体管线 × 实时数字人 × 开发工具链</p>
+        <div class="hero-stats">
+            <div class="stat"><span class="stat-num" data-count="28">0</span><span>个项目</span></div>
+            <div class="stat"><span class="stat-num" data-count="518">0</span><span>个技能</span></div>
+            <div class="stat"><span class="stat-num" data-count="3">0</span><span>个公开仓库</span></div>
+        </div>
+        <a href="#projects" class="cta-button">探索项目<i data-lucide="arrow-down"></i></a>
+    </div>
+    <div class="scroll-hint">↓</div>
+</section>
+
+<!-- 核心项目 -->
+<section id="projects" class="section">
+    <div class="container">
+        <h2 class="section-title"><span class="title-accent">▍</span>核心项目</h2>
+        <div class="project-grid">
+
+            <div class="proj-card featured">
+                <div class="proj-icon ai"><i data-lucide="video"></i></div>
+                <h3>Digital Human 实时 pipeline</h3>
+                <p>Wav2Lip + SCRFD 人脸追踪 + MLX 加速 TTS + GFPGAN 增强。M1 Max 上实现接近实时的口型同步推流。</p>
+                <div class="tags"><span>PyTorch MPS</span><span>MLX</span><span>TTS</span><span>RTMP</span><span>GFPGAN</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>活跃开发</div>
+            </div>
+
+            <div class="proj-card featured">
+                <div class="proj-icon tools"><i data-lucide="bot"></i></div>
+                <h3>QQ-Claude-Proxy</h3>
+                <p>通过 QQ 机器人远程操控本地 Claude Code CLI。代码留在本机，随时随地写码。带 watchdog 和完整测试。</p>
+                <div class="tags"><span>TypeScript</span><span>Node.js</span><span>Vitest</span></div>
+                <div class="proj-meta"><span class="status-dot stable"></span>v2.1.0</div>
+            </div>
+
+            <div class="proj-card featured">
+                <div class="proj-icon art"><i data-lucide="pen-tool"></i></div>
+                <h3>DrawIO Scientific Illustrator</h3>
+                <p>MCP 协议插件——让 AI 在 draw.io 画布上实时绘制科研图。双 MCP Server 架构，支持 Windows / macOS。</p>
+                <div class="tags"><span>MCP Protocol</span><span>Node.js</span><span>draw.io</span></div>
+                <div class="proj-meta"><span class="status-dot stable"></span>公开发布</div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon biz"><i data-lucide="bar-chart-3"></i></div>
+                <h3>库存管理系统 ERP</h3>
+                <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 + PostgreSQL 全栈。</p>
+                <div class="tags"><span>Go/Gin</span><span>Vue3/TS</span><span>PostgreSQL</span><span>Redis</span></div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon tools"><i data-lucide="brain-circuit"></i></div>
+                <h3>MySkills 技能库</h3>
+                <p>基于 Anthropic 官方 skill 体系整理的 518 个分类技能集合，持续维护更新。</p>
+                <div class="tags"><span>Claude Code</span><span>Skills</span></div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon fun"><i data-lucide="droplets"></i></div>
+                <h3>Slime 桌面宠物</h3>
+                <p>macOS 透明史莱姆：果冻渲染、表情系统、跳跃物理、CoreAnimation 光影。你桌面上的活的粒子。</p>
+                <div class="tags"><span>Python</span><span>PyObjC</span><span>CoreAnimation</span></div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon ai"><i data-lucide="cpu"></i></div>
+                <h3>LatentSync-MLX</h3>
+                <p>字节 LatentSync 1.5 口型同步模型的 Apple MLX 原生移植——UNet 推理快 2.3×。</p>
+                <div class="tags"><span>Apple MLX</span><span>SD1.5</span><span>Lip Sync</span></div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon art"><i data-lucide="sparkles"></i></div>
+                <h3>Particle Painting</h3>
+                <p>你眼前这个效果——输入文字，烟雾流沙聚拢成形。WebGL 粒子系统实验项目。</p>
+                <div class="tags"><span>Canvas/WebGL</span><span>粒子系统</span></div>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- 能力矩阵 -->
+<section id="skills" class="section section-alt">
+    <div class="container">
+        <h2 class="section-title"><span class="title-accent">▍</span>能力维度</h2>
+        <div class="skill-grid">
+            <div class="skill-card">
+                <div class="sk-head"><i data-lucide="brain"></i><h3>AI 媒体 & 数字人</h3></div>
+                <p>实时口型同步、人脸检测追踪、TTS 语音合成、GFPGAN 超分增强、RTMP 直播推流</p>
+                <code>Wav2Lip · MLX · SCRFD · mlx-audio · FFmpeg · RTMP</code>
+            </div>
+            <div class="skill-card">
+                <div class="sk-head"><i data-lucide="server"></i><h3>后端 & 系统</h3></div>
+                <p>高并发 API 服务、WebSocket 实时通信、Redis 缓存、PostgreSQL 数据建模、FIFO 成本引擎</p>
+                <code>Go/Gin · Node.js · Python/Flask · PostgreSQL · Redis · Docker</code>
+            </div>
+            <div class="skill-card">
+                <div class="sk-head"><i data-lucide="monitor"></i><h3>前端 & 可视化</h3></div>
+                <p>ECharts 仪表盘、WebGL 粒子系统、Remotion 编程式视频、响应式设计</p>
+                <code>Vue3/TS · Three.js · WebGL · Remotion · Canvas · ECharts</code>
+            </div>
+            <div class="skill-card">
+                <div class="sk-head"><i data-lucide="wrench"></i><h3>工具链 & DevOps</h3></div>
+                <p>MCP 协议插件开发、Claude/Codex Agent 配置、Cloudflare Pages 部署、多平台打包发布</p>
+                <code>MCP · Cloudflare · Electron · Vitest · wrangler · macOS/Linux</code>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- 联系 -->
+<section id="contact" class="section">
+    <div class="container">
+        <h2 class="section-title"><span class="title-accent">▍</span>联系</h2>
+        <div class="contact-row">
+            <a href="https://github.com/VAAN0524" target="_blank" rel="noopener" class="contact-pill">
+                <i data-lucide="github"></i><span>GitHub</span>
             </a>
-            <ul class="nav-menu">
-                <li><a href="#about"><i data-lucide="user"></i>关于我</a></li>
-                <li><a href="#skills"><i data-lucide="code-2"></i>技能</a></li>
-                <li><a href="#works"><i data-lucide="folder-open"></i>作品</a></li>
-                <li><a href="#vision"><i data-lucide="target"></i>愿景</a></li>
-                <li><a href="#contact"><i data-lucide="mail"></i>联系</a></li>
-                <li><a href="#message"><i data-lucide="message-circle"></i>留言</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <!-- Hero 区域 -->
-    <section id="hero" class="hero">
-        <div class="hero-content">
-            <div class="avatar-container">
-                <img src="images/avatar.jpg" alt="Vaan" class="avatar" width="160" height="160">
-                <div class="avatar-ring"></div>
-                <div class="avatar-ring-2"></div>
-            </div>
-            <h1 class="hero-title">你好，我是 <span class="highlight">Vaan</span></h1>
-            <p class="hero-subtitle">
-                <i data-lucide="code" class="inline-icon"></i>
-                欢迎来到我的个人空间
-                <i data-lucide="sparkles" class="inline-icon"></i>
-            </p>
-            <a href="#about" class="cta-button">
-                了解更多
-                <i data-lucide="arrow-down" class="btn-icon"></i>
+            <a href="mailto:448484359@163.com" class="contact-pill">
+                <i data-lucide="mail"></i><span>Email</span>
             </a>
         </div>
-        <div class="scroll-indicator"><i data-lucide="chevron-down"></i></div>
-    </section>
+    </div>
+</section>
 
-    <!-- 关于我 -->
-    <section id="about" class="section">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="user" class="title-icon"></i>我是谁</h2>
-            <div class="about-content">
-                <div class="card">
-                    <div class="card-icon"><i data-lucide="smile"></i></div>
-                    <h3>Vaan</h3>
-                    <p>一个热爱学习与探索的开发者</p>
+<!-- 留言 -->
+<section id="message" class="section section-alt">
+    <div class="container">
+        <h2 class="section-title"><span class="title-accent">▍</span>访客留言</h2>
+        <div class="message-content">
+            <form id="messageForm" class="card msg-form">
+                <div class="form-group">
+                    <input type="text" id="name" placeholder="昵称（≤20字符）" required maxlength="20">
+                    <div class="char-counter"><span id="nameCounter">0</span>/20</div>
                 </div>
-            </div>
+                <div class="form-group">
+                    <textarea id="messageText" placeholder="留句话…（≤500字符）" required maxlength="500" rows="4"></textarea>
+                    <div class="char-counter"><span id="messageTextCounter">0</span>/500</div>
+                </div>
+                <button type="submit" class="submit-button"><i data-lucide="send"></i>发送</button>
+            </form>
+            <div id="messageList" class="message-list"></div>
         </div>
-    </section>
+    </div>
+</section>
 
-    <!-- 技能 -->
-    <section id="skills" class="section section-alt">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="code-2" class="title-icon"></i>我的技能</h2>
-            <div class="skills-content">
-                <div class="card">
-                    <div class="card-icon"><i data-lucide="rocket"></i></div>
-                    <h3>持续学习</h3>
-                    <p>技能正在完善与学习中</p>
-                    <div class="skill-progress"><div class="progress-bar" style="--progress: 60%"></div></div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i data-lucide="book-open"></i></div>
-                    <h3>知识探索</h3>
-                    <p>不断探索新技术与新领域</p>
-                    <div class="skill-progress"><div class="progress-bar" style="--progress: 50%"></div></div>
-                </div>
-                <div class="card">
-                    <div class="card-icon"><i data-lucide="zap"></i></div>
-                    <h3>快速迭代</h3>
-                    <p>保持高效的学习与实践节奏</p>
-                    <div class="skill-progress"><div class="progress-bar" style="--progress: 70%"></div></div>
-                </div>
-            </div>
-        </div>
-    </section>
+<footer class="footer">
+    <div class="container footer-inner">
+        <span>&copy; 2025 Vaan</span>
+        <span class="footer-note">Built with particles ✦</span>
+    </div>
+</footer>
 
-    <!-- 作品 -->
-    <section id="works" class="section">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="folder-open" class="title-icon"></i>我的作品</h2>
-            <div class="works-content">
-                <div class="work-item">
-                    <div class="work-image"><i data-lucide="package"></i></div>
-                    <div class="work-content">
-                        <h3>待上传</h3><p>项目正在整理中，敬请期待</p>
-                        <div class="work-tags"><span class="work-tag">筹备中</span></div>
-                    </div>
-                </div>
-                <div class="work-item">
-                    <div class="work-image"><i data-lucide="layers"></i></div>
-                    <div class="work-content">
-                        <h3>筹备中</h3><p>更多精彩内容即将呈现</p>
-                        <div class="work-tags"><span class="work-tag">开发中</span></div>
-                    </div>
-                </div>
-                <div class="work-item">
-                    <div class="work-image"><i data-lucide="git-branch"></i></div>
-                    <div class="work-content">
-                        <h3>开发中</h3><p>持续迭代，不断优化</p>
-                        <div class="work-tags"><span class="work-tag">进行中</span></div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 愿景 -->
-    <section id="vision" class="section section-alt">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="target" class="title-icon"></i>愿景使命</h2>
-            <div class="vision-content">
-                <div class="card">
-                    <div class="card-icon"><i data-lucide="lightbulb"></i></div>
-                    <h3>探索技术</h3>
-                    <p>这是一个测试网页</p>
-                    <p style="margin-top:.5rem;">探索技术的无限可能</p>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 联系 -->
-    <section id="contact" class="section">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="mail" class="title-icon"></i>联系方式</h2>
-            <div class="contact-content">
-                <div class="contact-card">
-                    <div class="contact-icon"><i data-lucide="mail"></i></div>
-                    <h3>电子邮箱</h3>
-                    <a href="mailto:448484359@163.com">448484359@163.com</a>
-                </div>
-                <div class="contact-card">
-                    <div class="contact-icon"><i data-lucide="message-square"></i></div>
-                    <h3>微信</h3>
-                    <div class="wechat-qr">
-                        <img src="images/wechat.jpg" alt="微信二维码" loading="lazy">
-                        <p>扫码添加微信</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 留言 -->
-    <section id="message" class="section section-alt">
-        <div class="container">
-            <h2 class="section-title"><i data-lucide="message-circle" class="title-icon"></i>访客留言</h2>
-            <div class="message-content">
-                <form id="messageForm" class="card" style="text-align:left;align-items:stretch;">
-                    <div class="form-group">
-                        <input type="text" id="name" placeholder="您的昵称（最多20个字符）" required maxlength="20">
-                        <div class="char-counter"><span id="nameCounter">0</span>/20</div>
-                    </div>
-                    <div class="form-group">
-                        <textarea id="messageText" placeholder="留下您的留言...（最多500个字符）" required maxlength="500" rows="4"></textarea>
-                        <div class="char-counter"><span id="messageTextCounter">0</span>/500</div>
-                    </div>
-                    <button type="submit" class="submit-button">
-                        <i data-lucide="send"></i>发送留言
-                    </button>
-                </form>
-                <div id="messageList" class="message-list"></div>
-            </div>
-        </div>
-    </section>
-
-    <!-- 页脚 -->
-    <footer class="footer">
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-logo"><i data-lucide="sparkles"></i><span>Vaan</span></div>
-                <div class="footer-social">
-                    <a href="https://github.com/VAAN0524" target="_blank" rel="noopener" class="social-link">
-                        <i data-lucide="github"></i>
-                    </a>
-                    <a href="mailto:448484359@163.com" class="social-link">
-                        <i data-lucide="mail"></i>
-                    </a>
-                </div>
-            </div>
-            <p class="footer-text"><i data-lucide="heart" class="heart-icon"></i>&copy; 2025 Vaan. All rights reserved.</p>
-        </div>
-    </footer>
-
-    <!-- 同步脚本移到 body 尾部 + defer，不阻塞首屏渲染 -->
-    <script defer src="js/github-sync.js"></script>
-    <script defer src="js/cloudflare-sync.js"></script>
-    <script defer src="config-helper.js"></script>
-    <script defer src="js/script.js"></script>
+<script defer src="js/bg-particles.js"></script>
+<script defer src="js/github-sync.js"></script>
+<script defer src="js/cloudflare-sync.js"></script>
+<script defer src="config-helper.js"></script>
+<script defer src="js/script.js"></script>
 </body>
 </html>
