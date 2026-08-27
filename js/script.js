@@ -207,17 +207,31 @@ function initHeroParticles() {
         // 可聚合的粒子数（按 delay 错峰解锁）
         const unlocked = Math.min(FIXED_N, stateTimer * (FIXED_N / 45));
 
+        // 后期冲刺：时间过半后弹簧力倍增，确保所有粒子精确归位
+        const sprint = stateTimer > 60 ? 1 + (stateTimer - 60) * 0.06 : 1;
+
         for (let i = 0; i < FIXED_N; i++) {
           const p = particles[i];
 
           if (i < unlocked) {
-            // 可变刚度弹簧 + curl 微扰 → 每个粒子路径独特，不成群直线
-            const wob = curlFx(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
-            const wob2 = curlFy(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
+            // 距离目标的偏差
+            const dx = p.tx - p.x;
+            const dy = p.ty - p.y;
+            const distSq = dx * dx + dy * dy;
 
-            const curlFade = Math.max(0, 1 - stateTimer / 40); // 40帧内扰动归零 → 文字清晰锁定
-            p.x += (p.tx - p.x) * p.stiffness + wob * curlFade;
-            p.y += (p.ty - p.y) * p.stiffness + wob2 * curlFade;
+            if (distSq < 4) {
+              // 距离 <2px：直接吸附锁定（消除毛躁边缘）
+              p.x = p.tx;
+              p.y = p.ty;
+            } else {
+              // 可变刚度弹簧 × sprint 加速 × curl 微扰（前 40 帧渐减）
+              const wob = curlFx(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
+              const wob2 = curlFy(p.x * 0.004, p.y * 0.004, flowT) * 0.4;
+              const curlFade = Math.max(0, 1 - stateTimer / 40);
+              const e = Math.min(0.5, p.stiffness * sprint); // 上限 0.5 防过冲
+              p.x += dx * e + wob * curlFade;
+              p.y += dy * e + wob2 * curlFade;
+            }
           }
           ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
           ctx.fillRect(p.x, p.y, p.sz, p.sz);
@@ -286,6 +300,9 @@ function initHeroParticles() {
             if (attractRamp > 0) {
               p.x += (p.tx - p.x) * p.stiffness * attractRamp;
               p.y += (p.ty - p.y) * p.stiffness * attractRamp;
+              // 后半段衰减惯性速度 → 让粒子最终能被弹簧精确拉到位
+              p.vx *= 0.90;
+              p.vy *= 0.90;
             }
           }
 
