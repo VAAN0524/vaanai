@@ -4,12 +4,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vaan - 个人主页</title>
+
+    <!-- SEO -->
+    <meta name="description" content="Vaan 的个人主页 — 一个热爱学习与探索的开发者。展示技能、作品和联系方式。">
+    <meta name="keywords" content="Vaan,开发者,个人主页,portfolio">
+    <meta property="og:title" content="Vaan - 个人主页">
+    <meta property="og:description" content="一个热爱学习与探索的开发者">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vaan.pages.dev">
+
+    <!-- 性能：预连接 CDN -->
+    <link rel="preconnect" href="https://unpkg.com">
+
+    <!-- 样式 -->
     <link rel="stylesheet" href="css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
-    <!-- Cloudflare Pages 专用同步脚本 -->
-    <script src="js/github-sync.js"></script>
-    <script src="js/cloudflare-sync.js"></script>
-    <script src="config-helper.js"></script>
+
+    <!-- Lucide 图标（固定版本 + defer，不阻塞渲染） -->
+    <script defer src="https://unpkg.com/lucide@0.462.0/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <!-- 背景层 -->
@@ -23,23 +34,17 @@
 
     <!-- 粒子背景 -->
     <div class="particles" id="particles">
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
-        <div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div>
+        <div class="particle"></div><div class="particle"></div>
     </div>
 
     <!-- 导航栏 -->
     <nav class="navbar" id="navbar">
         <div class="nav-container">
             <a href="#" class="logo">
-                <div class="logo-badge">
-                    <i data-lucide="sparkles"></i>
-                </div>
+                <div class="logo-badge"><i data-lucide="sparkles"></i></div>
                 <span>Vaan</span>
             </a>
             <ul class="nav-menu">
@@ -57,7 +62,7 @@
     <section id="hero" class="hero">
         <div class="hero-content">
             <div class="avatar-container">
-                <img src="images/avatar.jpg" alt="Vaan" class="avatar">
+                <img src="images/avatar.jpg" alt="Vaan" class="avatar" width="160" height="160">
                 <div class="avatar-ring"></div>
                 <div class="avatar-ring-2"></div>
             </div>
@@ -72,23 +77,16 @@
                 <i data-lucide="arrow-down" class="btn-icon"></i>
             </a>
         </div>
-        <div class="scroll-indicator">
-            <i data-lucide="chevron-down"></i>
-        </div>
+        <div class="scroll-indicator"><i data-lucide="chevron-down"></i></div>
     </section>
 
     <!-- 关于我 -->
     <section id="about" class="section">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="user" class="title-icon"></i>
-                我是谁
-            </h2>
+            <h2 class="section-title"><i data-lucide="user" class="title-icon"></i>我是谁</h2>
             <div class="about-content">
                 <div class="card">
-                    <div class="card-icon">
-                        <i data-lucide="smile"></i>
-                    </div>
+                    <div class="card-icon"><i data-lucide="smile"></i></div>
                     <h3>Vaan</h3>
                     <p>一个热爱学习与探索的开发者</p>
                 </div>
@@ -99,40 +97,25 @@
     <!-- 技能 -->
     <section id="skills" class="section section-alt">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="code-2" class="title-icon"></i>
-                我的技能
-            </h2>
+            <h2 class="section-title"><i data-lucide="code-2" class="title-icon"></i>我的技能</h2>
             <div class="skills-content">
                 <div class="card">
-                    <div class="card-icon">
-                        <i data-lucide="rocket"></i>
-                    </div>
+                    <div class="card-icon"><i data-lucide="rocket"></i></div>
                     <h3>持续学习</h3>
                     <p>技能正在完善与学习中</p>
-                    <div class="skill-progress">
-                        <div class="progress-bar" style="--progress: 60%"></div>
-                    </div>
+                    <div class="skill-progress"><div class="progress-bar" style="--progress: 60%"></div></div>
                 </div>
                 <div class="card">
-                    <div class="card-icon">
-                        <i data-lucide="book-open"></i>
-                    </div>
+                    <div class="card-icon"><i data-lucide="book-open"></i></div>
                     <h3>知识探索</h3>
                     <p>不断探索新技术与新领域</p>
-                    <div class="skill-progress">
-                        <div class="progress-bar" style="--progress: 50%"></div>
-                    </div>
+                    <div class="skill-progress"><div class="progress-bar" style="--progress: 50%"></div></div>
                 </div>
                 <div class="card">
-                    <div class="card-icon">
-                        <i data-lucide="zap"></i>
-                    </div>
+                    <div class="card-icon"><i data-lucide="zap"></i></div>
                     <h3>快速迭代</h3>
                     <p>保持高效的学习与实践节奏</p>
-                    <div class="skill-progress">
-                        <div class="progress-bar" style="--progress: 70%"></div>
-                    </div>
+                    <div class="skill-progress"><div class="progress-bar" style="--progress: 70%"></div></div>
                 </div>
             </div>
         </div>
@@ -141,45 +124,27 @@
     <!-- 作品 -->
     <section id="works" class="section">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="folder-open" class="title-icon"></i>
-                我的作品
-            </h2>
+            <h2 class="section-title"><i data-lucide="folder-open" class="title-icon"></i>我的作品</h2>
             <div class="works-content">
                 <div class="work-item">
-                    <div class="work-image">
-                        <i data-lucide="package"></i>
-                    </div>
+                    <div class="work-image"><i data-lucide="package"></i></div>
                     <div class="work-content">
-                        <h3>待上传</h3>
-                        <p>项目正在整理中，敬请期待</p>
-                        <div class="work-tags">
-                            <span class="work-tag">筹备中</span>
-                        </div>
+                        <h3>待上传</h3><p>项目正在整理中，敬请期待</p>
+                        <div class="work-tags"><span class="work-tag">筹备中</span></div>
                     </div>
                 </div>
                 <div class="work-item">
-                    <div class="work-image">
-                        <i data-lucide="layers"></i>
-                    </div>
+                    <div class="work-image"><i data-lucide="layers"></i></div>
                     <div class="work-content">
-                        <h3>筹备中</h3>
-                        <p>更多精彩内容即将呈现</p>
-                        <div class="work-tags">
-                            <span class="work-tag">开发中</span>
-                        </div>
+                        <h3>筹备中</h3><p>更多精彩内容即将呈现</p>
+                        <div class="work-tags"><span class="work-tag">开发中</span></div>
                     </div>
                 </div>
                 <div class="work-item">
-                    <div class="work-image">
-                        <i data-lucide="git-branch"></i>
-                    </div>
+                    <div class="work-image"><i data-lucide="git-branch"></i></div>
                     <div class="work-content">
-                        <h3>开发中</h3>
-                        <p>持续迭代，不断优化</p>
-                        <div class="work-tags">
-                            <span class="work-tag">进行中</span>
-                        </div>
+                        <h3>开发中</h3><p>持续迭代，不断优化</p>
+                        <div class="work-tags"><span class="work-tag">进行中</span></div>
                     </div>
                 </div>
             </div>
@@ -189,18 +154,13 @@
     <!-- 愿景 -->
     <section id="vision" class="section section-alt">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="target" class="title-icon"></i>
-                愿景使命
-            </h2>
+            <h2 class="section-title"><i data-lucide="target" class="title-icon"></i>愿景使命</h2>
             <div class="vision-content">
                 <div class="card">
-                    <div class="card-icon">
-                        <i data-lucide="lightbulb"></i>
-                    </div>
+                    <div class="card-icon"><i data-lucide="lightbulb"></i></div>
                     <h3>探索技术</h3>
                     <p>这是一个测试网页</p>
-                    <p style="margin-top: 0.5rem;">探索技术的无限可能</p>
+                    <p style="margin-top:.5rem;">探索技术的无限可能</p>
                 </div>
             </div>
         </div>
@@ -209,25 +169,18 @@
     <!-- 联系 -->
     <section id="contact" class="section">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="mail" class="title-icon"></i>
-                联系方式
-            </h2>
+            <h2 class="section-title"><i data-lucide="mail" class="title-icon"></i>联系方式</h2>
             <div class="contact-content">
                 <div class="contact-card">
-                    <div class="contact-icon">
-                        <i data-lucide="mail"></i>
-                    </div>
+                    <div class="contact-icon"><i data-lucide="mail"></i></div>
                     <h3>电子邮箱</h3>
                     <a href="mailto:448484359@163.com">448484359@163.com</a>
                 </div>
                 <div class="contact-card">
-                    <div class="contact-icon">
-                        <i data-lucide="message-square"></i>
-                    </div>
+                    <div class="contact-icon"><i data-lucide="message-square"></i></div>
                     <h3>微信</h3>
                     <div class="wechat-qr">
-                        <img src="images/wechat.jpg" alt="微信二维码">
+                        <img src="images/wechat.jpg" alt="微信二维码" loading="lazy">
                         <p>扫码添加微信</p>
                     </div>
                 </div>
@@ -238,27 +191,19 @@
     <!-- 留言 -->
     <section id="message" class="section section-alt">
         <div class="container">
-            <h2 class="section-title">
-                <i data-lucide="message-circle" class="title-icon"></i>
-                访客留言
-            </h2>
+            <h2 class="section-title"><i data-lucide="message-circle" class="title-icon"></i>访客留言</h2>
             <div class="message-content">
-                <form id="messageForm" class="card" style="text-align: left; align-items: stretch;">
+                <form id="messageForm" class="card" style="text-align:left;align-items:stretch;">
                     <div class="form-group">
                         <input type="text" id="name" placeholder="您的昵称（最多20个字符）" required maxlength="20">
-                        <div class="char-counter">
-                            <span id="nameCounter">0</span>/20
-                        </div>
+                        <div class="char-counter"><span id="nameCounter">0</span>/20</div>
                     </div>
                     <div class="form-group">
                         <textarea id="messageText" placeholder="留下您的留言...（最多500个字符）" required maxlength="500" rows="4"></textarea>
-                        <div class="char-counter">
-                            <span id="messageTextCounter">0</span>/500
-                        </div>
+                        <div class="char-counter"><span id="messageTextCounter">0</span>/500</div>
                     </div>
                     <button type="submit" class="submit-button">
-                        <i data-lucide="send"></i>
-                        发送留言
+                        <i data-lucide="send"></i>发送留言
                     </button>
                 </form>
                 <div id="messageList" class="message-list"></div>
@@ -270,12 +215,9 @@
     <footer class="footer">
         <div class="container">
             <div class="footer-content">
-                <div class="footer-logo">
-                    <i data-lucide="sparkles"></i>
-                    <span>Vaan</span>
-                </div>
+                <div class="footer-logo"><i data-lucide="sparkles"></i><span>Vaan</span></div>
                 <div class="footer-social">
-                    <a href="https://github.com/VAAN0524" target="_blank" class="social-link">
+                    <a href="https://github.com/VAAN0524" target="_blank" rel="noopener" class="social-link">
                         <i data-lucide="github"></i>
                     </a>
                     <a href="mailto:448484359@163.com" class="social-link">
@@ -283,13 +225,14 @@
                     </a>
                 </div>
             </div>
-            <p class="footer-text">
-                <i data-lucide="heart" class="heart-icon"></i>
-                &copy; 2025 Vaan. All rights reserved.
-            </p>
+            <p class="footer-text"><i data-lucide="heart" class="heart-icon"></i>&copy; 2025 Vaan. All rights reserved.</p>
         </div>
     </footer>
 
-    <script src="js/script.js"></script>
+    <!-- 同步脚本移到 body 尾部 + defer，不阻塞首屏渲染 -->
+    <script defer src="js/github-sync.js"></script>
+    <script defer src="js/cloudflare-sync.js"></script>
+    <script defer src="config-helper.js"></script>
+    <script defer src="js/script.js"></script>
 </body>
 </html>
