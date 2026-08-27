@@ -19,16 +19,16 @@ document.addEventListener('DOMContentLoaded', () => {
   initSmoothScroll();
 });
 
-// ── Hero 粒子循环轮播 ──
+// ── Hero 粒子循环轮播 — 同一批粒子永不消失，形态之间连续变幻 ──
 const HERO_WORDS = [
   'Vaan',
   'AI Builder',
   '数字造物者',
-  '518 Skills',
+  '✦ 518 Skills ✦',
   '用代码构建',
   '28 Projects',
   '从粒子到现实',
-  '开 源 · 分 享',
+  '◆ 开源 · 分享 ◆',
 ];
 
 function initHeroParticles() {
@@ -44,17 +44,36 @@ function initHeroParticles() {
   resize();
   window.addEventListener('resize', resize);
 
-  const COLORS = [[0,217,255],[108,92,231],[247,148,161],[255,202,87],[72,219,133],[159,122,237]];
+  const COLORS = [
+    [0,217,255],[108,92,231],[247,148,161],[255,202,87],
+    [72,219,133],[159,122,237],[255,118,117],
+  ];
+  const FIXED_N = 900; // 固定粒子池，永不增减
 
-  // 自适应采样指定文字的像素点
+  // 初始化固定粒子池
+  const particles = [];
+  for (let i = 0; i < FIXED_N; i++) {
+    particles.push({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      vx: 0, vy: 0,
+      tx: 0, ty: 0,
+      ease: 0.03 + Math.random() * 0.05,
+      color: COLORS[i % COLORS.length],
+      sz: 1.8 + Math.random() * 2.2,   // 更大更清晰
+      swirlR: 60 + Math.random() * 200, // 混乱旋转半径
+      swirlA: Math.random() * Math.PI * 2,
+      swirlSpd: 0.04 + Math.random() * 0.05,
+    });
+  }
+
   function getPoints(text) {
     const offc = document.createElement('canvas');
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
-
-    const isCJK = /[\u4e00-\u9fff]/.test(text);
+    const isCJK = /[\u4e00-\u9fff\u2713\u2716\u25c6]/.test(text);
     let fontSize = Math.min(
-      W * 0.85 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
+      W * 0.82 / Math.max(text.length * (isCJK ? 0.9 : 0.55), 1),
       H * 0.42
     );
     fontSize = Math.max(fontSize, 80);
@@ -62,138 +81,121 @@ function initHeroParticles() {
     octx.fillStyle = '#fff';
     octx.textAlign = 'center';
     octx.textBaseline = 'middle';
-    // 文字中心点偏上（给底部按钮留空间）
     octx.fillText(text, W / 2, H * 0.38);
     const imgData = octx.getImageData(0, 0, W, H).data;
 
-    // 自适应步长，保持总点数在 600~1500 之间
     let step = 3;
     let pts = [];
     do {
       pts = [];
       for (let y = 0; y < H; y += step)
         for (let x = 0; x < W; x += step)
-          if (imgData[(y * W + x) * 4 + 3] > 100) pts.push(x, y);
-      if (pts.length / 2 > 1500) step++;
-    } while (pts.length / 2 > 1500 && step < 20);
-
+          if (imgData[(y * W + x) * 4 + 3] > 80) pts.push(x, y);
+      if (pts.length / 2 > 2000) step++;
+    } while (pts.length / 2 > 2000 && step < 25);
     return pts;
   }
 
-  // 状态机
-  const STATE = { FORMING: 0, HOLDING: 1, DISSOLVING: 2, GAP: 3 };
-  let state = STATE.FORMING;
+  function assignTargets(word) {
+    const pts = getPoints(word);
+    const numPts = pts.length / 2;
+    for (let i = 0; i < FIXED_N; i++) {
+      // 多粒子堆叠同一目标点 → 文字加粗清晰
+      const idx = (i % numPts) * 2;
+      particles[i].tx = pts[idx];
+      particles[i].ty = pts[idx + 1];
+    }
+  }
+
+  // 状态机：CONVERGE → HOLD → SWIRL → CONVERGE(next) …
+  const STATE = { CONVERGE: 0, HOLD: 1, SWIRL: 2 };
+  let state = STATE.CONVERGE;
   let wordIdx = 0;
   let holdTimer = 0;
-  let gapTimer = 0;
-  let particles = [];
-  let globalAlpha = 0;
 
-  function spawnFor(word) {
-    const pts = getPoints(word);
-    particles = [];
-    for (let i = 0; i < pts.length; i += 2) {
-      particles.push({
-        cx: Math.random() * W,
-        cy: Math.random() * H,
-        tx: pts[i],
-        ty: pts[i+1],
-        ease: 0.03 + Math.random() * 0.04,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        sz: 1 + Math.random() * 1.5,
-      });
-    }
-    globalAlpha = 0;
-  }
+  assignTargets(HERO_WORDS[0]);
 
   function drawHero(t) {
     ctx.clearRect(0, 0, W, H);
+    const cx = W / 2, cy = H * 0.38;
 
-    switch(state) {
-      case STATE.FORMING: {
-        globalAlpha = Math.min(1, globalAlpha + 0.02);
-        let allArrived = true;
+    switch (state) {
+      case STATE.CONVERGE: {
+        // 弹簧向目标收敛，全透明度不衰减
         for (const p of particles) {
-          p.cx += (p.tx - p.cx) * p.ease;
-          p.cy += (p.ty - p.cy) * p.ease;
-          p.ease *= 1.008;
-          if (Math.abs(p.tx-p.cx)>1 || Math.abs(p.ty-p.cy)>1) allArrived = false;
-          const [r,g,b] = p.color;
-          ctx.fillStyle = `rgba(${r},${g},${b},${(globalAlpha*0.85).toFixed(2)})`;
-          ctx.fillRect(p.cx, p.cy, p.sz, p.sz);
+          p.x += (p.tx - p.x) * p.ease;
+          p.y += (p.ty - p.y) * p.ease;
+          p.vx *= 0.90; p.vy *= 0.90;
+
+          const [r, g, b] = p.color;
+          ctx.fillStyle = `rgba(${r},${g},${b},0.85)`;
+          ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
-        if (allArrived) { state = STATE.HOLDING; holdTimer = 0; }
+        // 检查是否全部到位
+        const settled = particles.filter(p =>
+          Math.abs(p.tx - p.x) < 2 && Math.abs(p.ty - p.y) < 2
+        ).length;
+        if (settled > FIXED_N * 0.92) { state = STATE.HOLD; holdTimer = 0; }
         break;
       }
-      case STATE.HOLDING: {
+
+      case STATE.HOLD: {
         holdTimer++;
-        // 微微浮动
-        const breatheAmp = 0.8;
+        // 呼吸浮动
         for (const p of particles) {
-          const bx = p.tx + Math.sin(t*0.001 + p.ease*100)*breatheAmp;
-          const by = p.ty + Math.cos(t*0.001 + p.ease*50)*breatheAmp;
-          const [r,g,b] = p.color;
-          const flicker = 0.7 + 0.3*Math.sin(t*0.002 + p.ease*200);
-          ctx.fillStyle = `rgba(${r},${g},${b},${(globalAlpha*flicker).toFixed(2)})`;
+          const bx = p.tx + Math.sin(t * 0.001 + p.ease * 100) * 0.8;
+          const by = p.ty + Math.cos(t * 0.0008 + p.ease * 50) * 0.8;
+          const [r, g, b] = p.color;
+          const flicker = 0.75 + 0.25 * Math.sin(t * 0.003 + p.ease * 200);
+          ctx.fillStyle = `rgba(${r},${g},${b},${flicker.toFixed(2)})`;
           ctx.fillRect(bx, by, p.sz, p.sz);
         }
-        if (holdTimer > 120) { // ~2 秒
-          state = STATE.DISSOLVING;
-          // 给每个粒子随机逃逸方向
+        if (holdTimer > 110) { // ~1.8s
+          state = STATE.SWIRL;
+          // 给每个粒子混乱旋转中心
           for (const p of particles) {
-            p.ex = p.tx + (Math.random()-0.5)*W*1.2;
-            p.ey = p.ty + (Math.random()>0.5 ? 1 : -1) * H * Math.random();
-            p.dEase = 0.01 + Math.random()*0.02;
+            p.swirlCxA = cx + (Math.random() - 0.5) * W * 0.3;
+            p.swirlCyA = cy + (Math.random() - 0.5) * H * 0.3;
+            p.swirlDir = Math.random() > 0.5 ? 1 : -1;
           }
         }
         break;
       }
-      case STATE.DISSOLVING: {
-        globalAlpha -= 0.015;
+
+      case STATE.SWIRL: {
+        // 混乱旋涡：每个粒子绕自己的涡心旋转，逐渐扩散
+        holdTimer++;
         for (const p of particles) {
-          p.cx += (p.ex - p.cx) * p.dEase;
-          p.cy += (p.ey - p.cy) * p.dEase;
-          const [r,g,b] = p.color;
-          ctx.fillStyle = `rgba(${r},${g},${b},${Math.max(0,globalAlpha).toFixed(2)})`;
-          ctx.fillRect(p.cx, p.cy, p.sz, p.sz);
+          p.swirlA += p.swirlSpd * p.swirlDir;
+          p.swirlR *= 1.015; // 缓慢膨胀
+
+          // 计算当前位置（从上一个位置自然过渡到涡旋轨道）
+          p.tx = p.swirlCxA + Math.cos(p.swirlA) * p.swirlR;
+          p.ty = p.swirlCyA + Math.sin(p.swirlA) * p.swirlR;
+
+          p.x += (p.tx - p.x) * 0.06; // 快速跟随
+          p.y += (p.ty - p.y) * 0.06;
+
+          const [r, g, b] = p.color;
+          const alpha = Math.min(0.8, 0.5 + holdTimer * 0.002);
+          ctx.fillStyle = `rgba(${r},${g},${b},${alpha.toFixed(2)})`;
+          ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
-        if (globalAlpha <= 0) {
-          state = STATE.GAP;
-          gapTimer = 0;
-          particles = [];
-        }
-        break;
-      }
-      case STATE.GAP: {
-        gapTimer++;
-        if (gapTimer > 30) { // 0.5s 空白间隔
+
+        // 混乱 ~0.7s 后切换目标到下一个词，开始重新聚合
+        if (holdTimer > 42) {
           wordIdx = (wordIdx + 1) % HERO_WORDS.length;
-          spawnFor(HERO_WORDS[wordIdx]);
-          state = STATE.FORMING;
+          assignTargets(HERO_WORDS[wordIdx]);
+          state = STATE.CONVERGE;
         }
         break;
       }
     }
   }
-
-  // 启动循环
-  spawnFor(HERO_WORDS[0]);
 
   function loop(t) {
-    resize_if_needed();
     drawHero(t);
     requestAnimationFrame(loop);
-  }
-
-  let lastW = W, lastH = H;
-  function resize_if_needed() {
-    if (canvas.parentElement.offsetWidth !== lastW || canvas.parentElement.offsetHeight !== lastH) {
-      resize();
-      lastW = W; lastH = H;
-      spawnFor(HERO_WORDS[wordIdx]); // resize 后重新生成当前词
-      state = STATE.FORMING;
-      globalAlpha = 0;
-    }
   }
 
   requestAnimationFrame(loop);
