@@ -75,3 +75,44 @@
   }
   requestAnimationFrame(draw);
 })();
+// ── 电网电流效果 ──
+(function electricGrid() {
+  const layer = document.getElementById('electricLayer');
+  if (!layer) return;
+
+  // 随机生成一条电流线
+  function spawnLine() {
+    const el = document.createElement('div');
+    const isVertical = Math.random() > 0.5;
+    el.className = 'electric-line' + (isVertical ? ' vertical' : '');
+
+    // 对齐到 60px 网格线
+    if (isVertical) {
+      el.style.left = Math.floor(Math.random() * 20) * 60 + 'px';
+      el.style.animationName = 'electric-flow-v';
+    } else {
+      el.style.top = Math.floor(Math.random() * 15) * 60 + 'px';
+    }
+
+    // 随机时长和延迟
+    el.style.animationDuration = (2 + Math.random() * 3) + 's';
+    el.style.animationDelay = Math.random() * 2 + 's';
+
+    layer.appendChild(el);
+
+    // 动画结束后移除
+    const total = parseFloat(el.style.animationDuration) * 1000 +
+                  parseFloat(el.style.animationDelay) * 1000 + 500;
+    setTimeout(() => el.remove(), total);
+  }
+
+  // 初始生成几条
+  for (let i = 0; i < 6; i++) setTimeout(spawnLine, i * 800);
+
+  // 持续随机生成
+  setInterval(() => {
+    if (document.visibilityState === 'visible' && Math.random() > 0.3) {
+      spawnLine();
+    }
+  }, 1500);
+})();

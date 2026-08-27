@@ -2264,3 +2264,211 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     cursor: default;
     pointer-events: none;
 }
+
+/* ══════════════════════════════════════════
+   v3.1 — 赛博朋克电流网格 + 模块美化
+   ══════════════════════════════════════════ */
+
+/* ── 电流脉冲层（叠加在 bg-grid 之上）── */
+.electric-layer {
+    position: fixed;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.electric-line {
+    position: absolute;
+    background: linear-gradient(90deg, transparent, var(--accent), #a78bfa, transparent);
+    height: 1px;
+    width: 200px;
+    opacity: 0;
+    filter: blur(0.5px) drop-shadow(0 0 4px var(--accent));
+    animation: electric-flow 4s linear infinite;
+}
+
+.electric-line.vertical {
+    background: linear-gradient(180deg, transparent, var(--accent), transparent);
+    width: 1px;
+    height: 200px;
+}
+
+@keyframes electric-flow {
+    0% { opacity: 0; transform: translateX(-100px) scaleX(0.3); }
+    10% { opacity: 0.9; }
+    50% { opacity: 0.6; transform: translateX(60vw) scaleX(1.2); }
+    90% { opacity: 0.3; }
+    100% { opacity: 0; transform: translateX(120vw) scaleX(0.3); }
+}
+
+@keyframes electric-flow-v {
+    0% { opacity: 0; transform: translateY(-100px) scaleY(0.3); }
+    10% { opacity: 0.8; }
+    50% { opacity: 0.5; transform: translateY(60vh) scaleY(1.1); }
+    100% { opacity: 0; transform: translateY(120vh) scaleY(0.3); }
+}
+
+/* ── 网格交点闪烁 ── */
+.bg-grid::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: radial-gradient(circle at center, var(--accent) 0.5px, transparent 0.5px);
+    background-size: 60px 60px;
+    opacity: 0;
+    animation: node-pulse 6s ease-in-out infinite;
+}
+
+@keyframes node-pulse {
+    0%, 100% { opacity: 0; }
+    25% { opacity: 0.15; }
+    50% { opacity: 0.05; }
+    75% { opacity: 0.2; }
+}
+
+/* ── 模块赛博美化 ── */
+
+/* 导航栏扫描线 */
+.navbar::before {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--accent), #a78bfa, transparent);
+    background-size: 200% 100%;
+    animation: scan-sweep 3s linear infinite;
+}
+
+@keyframes scan-sweep {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+/* 项目卡片角标装饰 */
+.proj-card {
+    position: relative;
+    overflow: hidden;
+}
+.proj-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 20px;
+    border-top: 2px solid var(--accent);
+    border-left: 2px solid var(--accent);
+    opacity: 0;
+    transition: opacity .3s;
+}
+.proj-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 20px;
+    height: 20px;
+    border-bottom: 2px solid var(--accent);
+    border-right: 2px solid var(--accent);
+    opacity: 0;
+    transition: opacity .3s;
+}
+.proj-card:hover::before,
+.proj-card:hover::after {
+    opacity: 1;
+}
+
+/* 卡片内部扫描光效 */
+.proj-card .scanline {
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0;
+}
+.proj-card:hover .scanline {
+    animation: card-scan 1.2s ease-out;
+}
+
+@keyframes card-scan {
+    0% { left: -100%; opacity: 1; }
+    100% { left: 100%; opacity: 0; }
+}
+
+/* 磁贴霓虹边框呼吸 */
+.skill-tile {
+    animation: tile-breathe 4s ease-in-out infinite;
+}
+@keyframes tile-breathe {
+    0%, 100% { box-shadow: 0 0 0 rgba(0,217,255,0); }
+    50% { box-shadow: 0 0 12px rgba(0,217,255,0.15); }
+}
+.skill-tile:nth-child(even) { animation-delay: 2s; }
+.skill-tile:nth-child(3n) { animation-delay: 1s; }
+.skill-tile:nth-child(4n) { animation-delay: 3s; }
+
+/* 标题故障效果 */
+.section-title {
+    position: relative;
+}
+.section-title::after {
+    content: attr(data-text);
+    position: absolute;
+    left: 2px;
+    top: 0;
+    color: var(--rainbow-1);
+    opacity: 0;
+    clip-path: inset(0 0 100% 0);
+    pointer-events: none;
+}
+.section-title:hover::after {
+    animation: glitch-flicker 0.4s steps(2) infinite;
+}
+
+@keyframes glitch-flicker {
+    0% { opacity: 0.7; clip-path: inset(20% 0 60% 0); transform: translateX(-2px); }
+    25% { opacity: 0.5; clip-path: inset(60% 0 10% 0); transform: translateX(2px); }
+    50% { opacity: 0.8; clip-path: inset(10% 0 80% 0); transform: translateX(-1px); }
+    75% { opacity: 0.4; clip-path: inset(80% 0 5% 0); transform: translateX(1px); }
+    100% { opacity: 0.6; clip-path: inset(40% 0 40% 0); transform: translateX(0); }
+}
+
+/* 能力卡片矩阵感 */
+.skill-card {
+    position: relative;
+    background-image:
+        linear-gradient(rgba(0,217,255,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,217,255,0.03) 1px, transparent 1px);
+    background-size: 20px 20px;
+}
+
+/* 联系 pill 悬停电弧 */
+.contact-pill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    border: 1px solid transparent;
+    background: linear-gradient(135deg, var(--accent), transparent, #a78bfa) border-box;
+    -webkit-mask: linear-gradient(#fff 0 0) padding-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0;
+    transition: opacity .3s;
+}
+.contact-pill:hover::after { opacity: 1; }
+.contact-pill { position: relative; }
+
+/* 页脚渐变线 */
+.footer {
+    border-top: 1px solid transparent;
+    background-image: linear-gradient(var(--bg-main), var(--bg-main)),
+        linear-gradient(90deg, transparent, var(--accent), #a78bfa, transparent);
+    background-origin: border-box;
+    background-clip: padding-box, border-box;
+}

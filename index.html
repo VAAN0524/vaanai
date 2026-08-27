@@ -21,6 +21,7 @@
 
 <!-- 背景层 -->
 <div class="bg-grid"></div>
+<div class="electric-layer" id="electricLayer"></div>
 <div class="bg-glow bg-glow-1"></div>
 <div class="bg-glow bg-glow-2"></div>
 <div class="ripple-container" id="rippleContainer"></div>
@@ -51,10 +52,10 @@
 <!-- 核心项目 -->
 <section id="projects" class="section">
     <div class="container">
-        <h2 class="section-title"><span class="title-accent">▍</span>原创项目</h2>
+        <h2 class="section-title" data-text="原创项目"><span class="title-accent">▍</span>原创项目</h2>
         <div class="project-grid">
 
-            <div class="proj-card featured">
+            <div class="proj-card featured"><div class="scanline"></div>
                 <div class="proj-icon ai"><i data-lucide="bot"></i></div>
                 <h3>QQ-Claude-Proxy</h3>
                 <p>通过 QQ 机器人远程操控本地 Claude Code CLI。代码留在本机，随时随地写码。带 watchdog 和完整测试。</p>
@@ -62,7 +63,7 @@
                 <div class="proj-meta"><span class="status-dot stable"></span>v2.1.0 公开发布</div>
             </div>
 
-            <div class="proj-card featured">
+            <div class="proj-card featured"><div class="scanline"></div>
                 <div class="proj-icon art"><i data-lucide="pen-tool"></i></div>
                 <h3>DrawIO Scientific Illustrator</h3>
                 <p>MCP 协议插件——让 AI 在 draw.io 画布上实时绘制科研图。双 MCP Server 架构，支持 Windows / macOS。</p>
@@ -70,7 +71,7 @@
                 <div class="proj-meta"><span class="status-dot stable"></span>MIT 开源</div>
             </div>
 
-            <div class="proj-card featured">
+            <div class="proj-card featured"><div class="scanline"></div>
                 <div class="proj-icon biz"><i data-lucide="bar-chart-3"></i></div>
                 <h3>库存管理系统 ERP</h3>
                 <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 + PostgreSQL 全栈独立完成。</p>
@@ -78,21 +79,21 @@
                 <div class="proj-meta"><span class="status-dot active"></span>全栈独立开发</div>
             </div>
 
-            <div class="proj-card">
+            <div class="proj-card"><div class="scanline"></div>
                 <div class="proj-icon fun"><i data-lucide="droplets"></i></div>
                 <h3>Slime 桌面宠物</h3>
                 <p>macOS 透明史莱姆：果冻渲染（Beer-Lambert 光学模型）、表情系统、跳跃物理 squash & stretch。</p>
                 <div class="tags"><span>Python</span><span>PyObjC</span><span>CoreAnimation</span></div>
             </div>
 
-            <div class="proj-card">
+            <div class="proj-card"><div class="scanline"></div>
                 <div class="proj-icon art"><i data-lucide="sparkles"></i></div>
                 <h3>Particle Painting</h3>
                 <p>你眼前这个效果——文字从烟雾流沙中聚拢成形。Canvas/WebGL 粒子系统，从零构建流场与弹簧动力学。</p>
                 <div class="tags"><span>Canvas 2D</span><span>粒子系统</span><span>Curl Noise</span></div>
             </div>
 
-            <div class="proj-card">
+            <div class="proj-card"><div class="scanline"></div>
                 <div class="proj-icon ai"><i data-lucide="video"></i></div>
                 <h3>数字人推理管线设计</h3>
                 <p>自主设计的实时口型同步 pipeline：音频驱动 → 推理 → 超分增强 → RTMP 推流全链路架构与工程实现。</p>
@@ -100,7 +101,7 @@
                 <div class="proj-meta"><span class="status-dot active"></span>活跃开发</div>
             </div>
 
-            <div class="proj-card">
+            <div class="proj-card"><div class="scanline"></div>
                 <div class="proj-icon tools"><i data-lucide="layers"></i></div>
                 <h3>Agent Skills 技能库</h3>
                 <p>根据实际工作流程沉淀的自定义 Claude/Codex Agent Skills——从工作流分析到 skill 编写、测试、分类归档的完整体系。</p>
@@ -113,7 +114,7 @@
 </section>
 <section id="skills" class="section section-alt">
     <div class="container">
-        <h2 class="section-title"><span class="title-accent">▍</span>原创 Skills</h2>
+        <h2 class="section-title" data-text="原创 Skills"><span class="title-accent">▍</span>原创 Skills</h2>
         <div class="skill-tiles">
             <div class="skill-tile" data-desc="Agnes AI 文生图/视频集成，v2.5 flash 模型，图生视频流水线">
                 <i data-lucide="image"></i><h4>agnes-ai</h4><p>文生图/视频</p>
@@ -151,7 +152,7 @@
 </section>
 <section id="capability" class="section">
     <div class="container">
-        <h2 class="section-title"><span class="title-accent">▍</span>能力维度</h2>
+        <h2 class="section-title" data-text="能力维度"><span class="title-accent">▍</span>能力维度</h2>
         <div class="skill-grid">
             <div class="skill-card">
                 <div class="sk-head"><i data-lucide="server"></i><h3>全栈系统设计</h3></div>
@@ -180,7 +181,7 @@
 <!-- 联系 -->
 <section id="contact" class="section">
     <div class="container">
-        <h2 class="section-title"><span class="title-accent">▍</span>联系</h2>
+        <h2 class="section-title" data-text="联系"><span class="title-accent">▍</span>联系</h2>
         <div class="contact-row">
             <a href="https://github.com/VAAN0524" target="_blank" rel="noopener" class="contact-pill">
                 <i data-lucide="github"></i><span>github.com/VAAN0524</span>
