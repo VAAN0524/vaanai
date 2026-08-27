@@ -72,72 +72,71 @@ function initHeroParticles() {
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
     const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
-    const chars = [...text]; // 正确处理中文/emoji
-    const maxW = W * 0.82;   // 左右留 9% 边距
+    const maxW = W * 0.82, maxH = H * 0.40;   // 安全区
+    const marginX = W * 0.09, marginY = H * 0.18;
 
-    // ── 智能换行：先按固定比例估算初始字号，再用 measureText 迭代校准 ──
-    // Step1: 找到能让全部文本放入单行的最大字号
-    let fs = Math.min(maxW / Math.max(chars.length * (isCJKWord(text) ? 0.85 : 0.48), 1), H * 0.35);
-    fs = Math.max(fs, 24);
-
-    octx.font = `900 ${fs}px ${fonts}`;
-    let measured = octx.measureText(text).width;
-    if (measured > maxW) {
-      fs *= maxW / measured;
-      octx.font = `900 ${Math.round(fs)}px ${fonts}`;
+    // 从 ImageData 中提取非透明像素坐标
+    function extractPoints() {
+      const imgData = octx.getImageData(0, 0, W, H).data;
+      const pts = [];
+      const step = 3;
+      for (let py = 0; py < H; py += step)
+        for (let px = 0; px < W; px += step)
+          if (imgData[(py * W + px) * 4 + 3] > 60)
+            pts.push(px, py);
+      return pts;
     }
 
-    // Step2: 判断是否需要换行（单行太小 < 36px 时，分两行让字更大）
-    measured = octx.measureText(text).width;
-
-    let lines, lineH;
-    if (measured <= maxW) {
-      // 单行就放得下且够大
-      lines = [text];
-      lineH = fs * 1.15;
-    } else {
-      // 单行放不下 → 二分法找两行放置的最佳字号
-      // 第一行尽量多字符，第二行剩余
-      for (let splitAt = Math.ceil(chars.length / 2); splitAt >= 1; splitAt--) {
-        const l1 = chars.slice(0, splitAt).join('');
-        const l2 = chars.slice(splitAt).join('');
-        octx.font = `900 ${fs}px ${fonts}`;
-        const w1 = octx.measureText(l1).width;
-        const w2 = octx.measureText(l2).width;
-        if (w1 <= maxW && w2 <= maxW && fs >= 24) {
-          lines = [l1, l2];
-          break;
-        }
-        // 两行也放不下 → 缩小字号重试这个分割点
-        if (splitAt === 1) {
-          fs *= Math.min(maxW / w1, maxW / w2) * 0.9;
-          splitAt = Math.ceil(chars.length / 2); // 重试相同分割
-          octx.font = `900 ${fs}px ${fonts}`;
-        }
-      }
-      lineH = fs * 1.3;
+    // 扫描实际渲染的包围盒（不依赖 measureText）
+    function scanBBox() {
+      const d = octx.getImageData(0, 0, W, H).data;
+      let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
+      for (let y = 0; y < H; y++)
+        for (let x = 0; x < W; x++)
+          if (d[(y * W + x) * 4 + 3] > 40) {
+            if (x < minX) minX = x;
+            if (x > maxX) maxX = x;
+            if (y < minY) minY = y;
+            if (y > maxY) maxY = y;
+          }
+      return { minX, maxX, minY, maxY };
     }
 
-    // Step3: 绘制 + 采样（每行独立清屏，避免像素叠加）
-    const startY = H * 0.36 - ((lines.length - 1) * lineH) / 2;
-    const pts = [];
-    for (let li = 0; li < lines.length; li++) {
+    // 绘制指定字号的文字并清屏
+    function drawAt(fontSize) {
       octx.clearRect(0, 0, W, H);
-      octx.font = `900 ${Math.round(fs)}px ${fonts}`;
+      octx.font = `900 ${fontSize}px ${fonts}`;
       octx.fillStyle = '#fff';
       octx.textAlign = 'center';
       octx.textBaseline = 'middle';
-      octx.fillText(lines[li], W / 2, startY + li * lineH);
-
-      const imgData = octx.getImageData(0, 0, W, H).data;
-      const step = Math.max(2, Math.floor(fs / 40));
-      for (let py = 0; py < H; py += step)
-        for (let px = 0; px < W; px += step)
-          if (imgData[(py * W + px) * 4 + 3] > 60) pts.push(px, py);
+      octx.fillText(text, W / 2, H * 0.38);
     }
-    return pts;
 
-    function isCJKWord(t) { return /[\u4e00-\u9fff]/.test(t); }
+    // 二分搜索最大能放入安全区的字号（用像素扫描验证）
+    let lo = 16, hi = Math.min(W, H);
+    let bestFs = lo;
+
+    while (lo <= hi) {
+      const mid = Math.floor((lo + hi) / 2);
+      drawAt(mid);
+      const bb = scanBBox();
+
+      const wFits = (bb.maxX - bb.minX) <= maxW;
+      const hFits = (bb.maxY - bb.minY) <= maxH;
+      const xSafe = bb.minX >= marginX * 0.5 && bb.maxX <= W - marginX * 0.5;
+      const ySafe = bb.minY >= marginY * 0.5 && bb.maxY <= H - marginY * 0.5;
+
+      if (wFits && hFits && xSafe && ySafe) {
+        bestFs = mid;
+        lo = mid + 1; // 尝试更大
+      } else {
+        hi = mid - 1; // 太大，缩小
+      }
+    }
+
+    // 用验证过的字号最终绘制并采样像素点
+    drawAt(bestFs);
+    return extractPoints();
   }
 
   function assignTargets(word) {
