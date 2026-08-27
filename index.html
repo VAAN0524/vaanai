@@ -51,23 +51,15 @@
 <!-- 核心项目 -->
 <section id="projects" class="section">
     <div class="container">
-        <h2 class="section-title"><span class="title-accent">▍</span>核心项目</h2>
+        <h2 class="section-title"><span class="title-accent">▍</span>原创项目</h2>
         <div class="project-grid">
 
             <div class="proj-card featured">
-                <div class="proj-icon ai"><i data-lucide="video"></i></div>
-                <h3>Digital Human 实时 pipeline</h3>
-                <p>Wav2Lip + SCRFD 人脸追踪 + MLX 加速 TTS + GFPGAN 增强。M1 Max 上实现接近实时的口型同步推流。</p>
-                <div class="tags"><span>PyTorch MPS</span><span>MLX</span><span>TTS</span><span>RTMP</span><span>GFPGAN</span></div>
-                <div class="proj-meta"><span class="status-dot active"></span>活跃开发</div>
-            </div>
-
-            <div class="proj-card featured">
-                <div class="proj-icon tools"><i data-lucide="bot"></i></div>
+                <div class="proj-icon ai"><i data-lucide="bot"></i></div>
                 <h3>QQ-Claude-Proxy</h3>
                 <p>通过 QQ 机器人远程操控本地 Claude Code CLI。代码留在本机，随时随地写码。带 watchdog 和完整测试。</p>
                 <div class="tags"><span>TypeScript</span><span>Node.js</span><span>Vitest</span></div>
-                <div class="proj-meta"><span class="status-dot stable"></span>v2.1.0</div>
+                <div class="proj-meta"><span class="status-dot stable"></span>v2.1.0 公开发布</div>
             </div>
 
             <div class="proj-card featured">
@@ -75,42 +67,37 @@
                 <h3>DrawIO Scientific Illustrator</h3>
                 <p>MCP 协议插件——让 AI 在 draw.io 画布上实时绘制科研图。双 MCP Server 架构，支持 Windows / macOS。</p>
                 <div class="tags"><span>MCP Protocol</span><span>Node.js</span><span>draw.io</span></div>
-                <div class="proj-meta"><span class="status-dot stable"></span>公开发布</div>
+                <div class="proj-meta"><span class="status-dot stable"></span>MIT 开源</div>
             </div>
 
-            <div class="proj-card">
+            <div class="proj-card featured">
                 <div class="proj-icon biz"><i data-lucide="bar-chart-3"></i></div>
                 <h3>库存管理系统 ERP</h3>
-                <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 + PostgreSQL 全栈。</p>
-                <div class="tags"><span>Go/Gin</span><span>Vue3/TS</span><span>PostgreSQL</span><span>Redis</span></div>
-            </div>
-
-            <div class="proj-card">
-                <div class="proj-icon tools"><i data-lucide="brain-circuit"></i></div>
-                <h3>MySkills 技能库</h3>
-                <p>基于 Anthropic 官方 skill 体系整理的 518 个分类技能集合，持续维护更新。</p>
-                <div class="tags"><span>Claude Code</span><span>Skills</span></div>
+                <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 + PostgreSQL 全栈独立完成。</p>
+                <div class="tags"><span>Go/Gin</span><span>Vue3/TS</span><span>PostgreSQL</span><span>Redis</span><span>Docker</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>全栈独立开发</div>
             </div>
 
             <div class="proj-card">
                 <div class="proj-icon fun"><i data-lucide="droplets"></i></div>
                 <h3>Slime 桌面宠物</h3>
-                <p>macOS 透明史莱姆：果冻渲染、表情系统、跳跃物理、CoreAnimation 光影。你桌面上的活的粒子。</p>
+                <p>macOS 透明史莱姆：果冻渲染（Beer-Lambert 光学模型）、表情系统、跳跃物理 squash & stretch。</p>
                 <div class="tags"><span>Python</span><span>PyObjC</span><span>CoreAnimation</span></div>
-            </div>
-
-            <div class="proj-card">
-                <div class="proj-icon ai"><i data-lucide="cpu"></i></div>
-                <h3>LatentSync-MLX</h3>
-                <p>字节 LatentSync 1.5 口型同步模型的 Apple MLX 原生移植——UNet 推理快 2.3×。</p>
-                <div class="tags"><span>Apple MLX</span><span>SD1.5</span><span>Lip Sync</span></div>
             </div>
 
             <div class="proj-card">
                 <div class="proj-icon art"><i data-lucide="sparkles"></i></div>
                 <h3>Particle Painting</h3>
-                <p>你眼前这个效果——输入文字，烟雾流沙聚拢成形。WebGL 粒子系统实验项目。</p>
-                <div class="tags"><span>Canvas/WebGL</span><span>粒子系统</span></div>
+                <p>你眼前这个效果——文字从烟雾流沙中聚拢成形。Canvas/WebGL 粒子系统，从零构建流场与弹簧动力学。</p>
+                <div class="tags"><span>Canvas 2D</span><span>粒子系统</span><span>Curl Noise</span></div>
+            </div>
+
+            <div class="proj-card">
+                <div class="proj-icon ai"><i data-lucide="video"></i></div>
+                <h3>数字人推理管线设计</h3>
+                <p>自主设计的实时口型同步 pipeline：音频驱动 → 推理 → 超分增强 → RTMP 推流全链路架构与工程实现。</p>
+                <div class="tags"><span>Pipeline 架构</span><span>MPS 加速</span><span>TTS 集成</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>活跃开发</div>
             </div>
 
         </div>
@@ -123,24 +110,24 @@
         <h2 class="section-title"><span class="title-accent">▍</span>能力维度</h2>
         <div class="skill-grid">
             <div class="skill-card">
-                <div class="sk-head"><i data-lucide="brain"></i><h3>AI 媒体 & 数字人</h3></div>
-                <p>实时口型同步、人脸检测追踪、TTS 语音合成、GFPGAN 超分增强、RTMP 直播推流</p>
-                <code>Wav2Lip · MLX · SCRFD · mlx-audio · FFmpeg · RTMP</code>
+                <div class="sk-head"><i data-lucide="server"></i><h3>全栈系统设计</h3></div>
+                <p>从零构建完整进销存 ERP：采购/销售/库存三大模块、FIFO 批次成本核算引擎、WebSocket 实时推送、ECharts 仪表盘。独立完成前后端与部署。</p>
+                <code>Go/Gin · Vue3/TypeScript · PostgreSQL · Redis · Docker Compose</code>
             </div>
             <div class="skill-card">
-                <div class="sk-head"><i data-lucide="server"></i><h3>后端 & 系统</h3></div>
-                <p>高并发 API 服务、WebSocket 实时通信、Redis 缓存、PostgreSQL 数据建模、FIFO 成本引擎</p>
-                <code>Go/Gin · Node.js · Python/Flask · PostgreSQL · Redis · Docker</code>
+                <div class="sk-head"><i data-lucide="wrench"></i><h3>MCP 协议插件开发</h3></div>
+                <p>原创双 MCP Server 架构——AI Agent 可在 draw.io 桌面画布上实时绘制和编辑科研图。含验证框架、冒烟测试、跨平台安装器。</p>
+                <code>TypeScript ES Modules · MCP Protocol · draw.io API · Vitest</code>
             </div>
             <div class="skill-card">
-                <div class="sk-head"><i data-lucide="monitor"></i><h3>前端 & 可视化</h3></div>
-                <p>ECharts 仪表盘、WebGL 粒子系统、Remotion 编程式视频、响应式设计</p>
-                <code>Vue3/TS · Three.js · WebGL · Remotion · Canvas · ECharts</code>
+                <div class="sk-head"><i data-lucide="monitor"></i><h3>Creative Coding & 粒子系统</h3></div>
+                <p>从零实现粒子流场（curl noise）、文字像素采样、弹簧动力学聚字、Canvas/WebGL 双渲染路径。以及 PyObjC + CoreAnimation 的 macOS 原生桌面宠物。</p>
+                <code>Canvas 2D · WebGL · sin/cos flow field · PyObjC · CoreAnimation</code>
             </div>
             <div class="skill-card">
-                <div class="sk-head"><i data-lucide="wrench"></i><h3>工具链 & DevOps</h3></div>
-                <p>MCP 协议插件开发、Claude/Codex Agent 配置、Cloudflare Pages 部署、多平台打包发布</p>
-                <code>MCP · Cloudflare · Electron · Vitest · wrangler · macOS/Linux</code>
+                <div class="sk-head"><i data-lucide="bot"></i><h3>Agent 工具链工程</h3></div>
+                <p>QQ → Claude Code 远程执行桥梁：消息队列、会话管理、watchdog 守护进程。配套 vitest 完整测试体系，v2.1.0 公开发布。</p>
+                <code>TypeScript · Node.js ≥18 · WebSocket · Vitest · tsx</code>
             </div>
         </div>
     </div>
