@@ -72,70 +72,72 @@ function initHeroParticles() {
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
     const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
+    const chars = [...text]; // 正确处理中文/emoji
+    const maxW = W * 0.82;   // 左右留 9% 边距
 
-    // 智能换行：CJK 可任意字符断行，英文按空格分词
-    function wrapText(t, maxW) {
-      const hasCJK = /[\u4e00-\u9fff]/.test(t);
-      const lines = [];
-      let cur = '';
-      if (hasCJK || !t.includes(' ')) {
-        for (const ch of t) {
-          const test = cur + ch;
-          if (octx.measureText(test).width > maxW && cur) { lines.push(cur); cur = ch; }
-          else cur = test;
+    // ── 智能换行：先按固定比例估算初始字号，再用 measureText 迭代校准 ──
+    // Step1: 找到能让全部文本放入单行的最大字号
+    let fs = Math.min(maxW / Math.max(chars.length * (isCJKWord(text) ? 0.85 : 0.48), 1), H * 0.35);
+    fs = Math.max(fs, 24);
+
+    octx.font = `900 ${fs}px ${fonts}`;
+    let measured = octx.measureText(text).width;
+    if (measured > maxW) {
+      fs *= maxW / measured;
+      octx.font = `900 ${Math.round(fs)}px ${fonts}`;
+    }
+
+    // Step2: 判断是否需要换行（单行太小 < 36px 时，分两行让字更大）
+    measured = octx.measureText(text).width;
+
+    let lines, lineH;
+    if (measured <= maxW) {
+      // 单行就放得下且够大
+      lines = [text];
+      lineH = fs * 1.15;
+    } else {
+      // 单行放不下 → 二分法找两行放置的最佳字号
+      // 第一行尽量多字符，第二行剩余
+      for (let splitAt = Math.ceil(chars.length / 2); splitAt >= 1; splitAt--) {
+        const l1 = chars.slice(0, splitAt).join('');
+        const l2 = chars.slice(splitAt).join('');
+        octx.font = `900 ${fs}px ${fonts}`;
+        const w1 = octx.measureText(l1).width;
+        const w2 = octx.measureText(l2).width;
+        if (w1 <= maxW && w2 <= maxW && fs >= 24) {
+          lines = [l1, l2];
+          break;
         }
-      } else {
-        for (const w of t.split(/\s+/)) {
-          const test = cur ? cur + ' ' + w : w;
-          if (octx.measureText(test).width > maxW && cur) { lines.push(cur); cur = w; }
-          else cur = test;
+        // 两行也放不下 → 缩小字号重试这个分割点
+        if (splitAt === 1) {
+          fs *= Math.min(maxW / w1, maxW / w2) * 0.9;
+          splitAt = Math.ceil(chars.length / 2); // 重试相同分割
+          octx.font = `900 ${fs}px ${fonts}`;
         }
       }
-      if (cur) lines.push(cur);
-      return lines;
+      lineH = fs * 1.3;
     }
 
-    // 自适应字号：迭代缩放直到文字能放入指定区域
-    const maxW = W * 0.85, maxH = H * 0.48;
-    let fs = Math.min(W * 0.8 / Math.max(text.length * 0.55, 1), H * 0.35, 260);
-    fs = Math.max(fs, 28);
-
-    let lines;
-    for (let iter = 0; iter < 15; iter++) {
-      octx.font = `900 ${fs}px ${fonts}`;
-      lines = wrapText(text, maxW);
-      const lineH = fs * 1.2;
-      const totalH = lines.length * lineH;
-      let maxLineW = 0;
-      for (const l of lines) maxLineW = Math.max(maxLineW, octx.measureText(l).width);
-      if (maxLineW <= maxW && totalH <= maxH) break;
-      const ratio = Math.min(maxW / Math.max(maxLineW,1), maxH / Math.max(totalH,1)) * 0.92;
-      fs = Math.max(fs * ratio, 24);
-      if (fs <= 24) break;
-    }
-
-    // 用最终字号重新换行并逐行采样像素点
-    octx.font = `900 ${fs}px ${fonts}`;
-    lines = wrapText(text, maxW);
-    const lineH = fs * 1.2;
-    const startY = H * 0.38 - ((lines.length - 1) * lineH) / 2;
-
+    // Step3: 绘制 + 采样（每行独立清屏，避免像素叠加）
+    const startY = H * 0.36 - ((lines.length - 1) * lineH) / 2;
     const pts = [];
     for (let li = 0; li < lines.length; li++) {
       octx.clearRect(0, 0, W, H);
-      octx.font = `900 ${fs}px ${fonts}`;
+      octx.font = `900 ${Math.round(fs)}px ${fonts}`;
       octx.fillStyle = '#fff';
       octx.textAlign = 'center';
       octx.textBaseline = 'middle';
       octx.fillText(lines[li], W / 2, startY + li * lineH);
 
       const imgData = octx.getImageData(0, 0, W, H).data;
-      const step = Math.max(3, Math.floor(fs / 40));
+      const step = Math.max(2, Math.floor(fs / 40));
       for (let py = 0; py < H; py += step)
         for (let px = 0; px < W; px += step)
-          if (imgData[(py * W + px) * 4 + 3] > 80) pts.push(px, py);
+          if (imgData[(py * W + px) * 4 + 3] > 60) pts.push(px, py);
     }
     return pts;
+
+    function isCJKWord(t) { return /[\u4e00-\u9fff]/.test(t); }
   }
 
   function assignTargets(word) {
