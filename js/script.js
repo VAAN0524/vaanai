@@ -408,3 +408,29 @@ function initSmoothScroll(){
 window.addEventListener('scroll',()=>{
   document.querySelector('.navbar')?.classList.toggle('scrolled',scrollY>100);
 },{passive:true});
+// ── 原创 Skills 磁贴悬停提示 ──
+(function skillTooltips() {
+  const tiles = document.querySelectorAll('.skill-tile');
+  if (!tiles.length) return;
+  const tooltip = document.getElementById('skillTooltip');
+  if (!tooltip) return;
+
+  tiles.forEach(tile => {
+    tile.addEventListener('mouseenter', e => {
+      const desc = tile.dataset.desc || '';
+      tooltip.textContent = desc;
+      tooltip.classList.add('visible');
+      // 简单跟随
+      const move = ev => {
+        tooltip.style.left = Math.min(ev.clientX + 16, innerWidth - 280) + 'px';
+        tooltip.style.top = (ev.clientY + 16) + 'px';
+      };
+      move(e);
+      tile.addEventListener('mousemove', move);
+      tile.addEventListener('mouseleave', () => {
+        tile.removeEventListener('mousemove', move);
+        tooltip.classList.remove('visible');
+      }, { once: true });
+    });
+  });
+})();

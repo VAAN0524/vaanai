@@ -2202,3 +2202,60 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     transform: translateX(-50%);
     z-index: 2;
 }
+
+/* ── 原创 Skills 磁贴 ── */
+.skill-tiles {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    position: relative;
+}
+.skill-tile {
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.07);
+    border-radius: 14px;
+    padding: 1.1rem .9rem;
+    text-align: center;
+    cursor: pointer;
+    transition: transform .25s, border-color .25s, box-shadow .25s, background .25s;
+    position: relative;
+    z-index: 1;
+}
+.skill-tile:hover {
+    transform: translateY(-3px) scale(1.03);
+    border-color: rgba(0,217,255,.4);
+    box-shadow: 0 6px 24px rgba(0,217,255,.15);
+    background: rgba(0,217,255,.08);
+}
+.skill-tile svg {
+    width: 26px; height: 26px;
+    color: var(--accent);
+    margin-bottom: .5rem;
+}
+.skill-tile h4 {
+    font-size: .9rem;
+    color: var(--text-primary);
+    margin-bottom: .2rem;
+    word-break: break-all;
+}
+.skill-tile p {
+    font-size: .72rem;
+    color: var(--text-muted);
+}
+.skill-tooltip {
+    position: fixed;
+    max-width: 260px;
+    padding: .7rem .9rem;
+    background: rgba(20,20,35,.95);
+    border: 1px solid rgba(0,217,255,.3);
+    border-radius: 10px;
+    color: #e2e8f0;
+    font-size: .78rem;
+    line-height: 1.5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .2s;
+    z-index: 1000;
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+}
+.skill-tooltip.visible { opacity: 1; }
