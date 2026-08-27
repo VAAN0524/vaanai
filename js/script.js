@@ -9,13 +9,8 @@ document.addEventListener('DOMContentLoaded', () => {
   };
   initIcons();
 
-  if (typeof CloudflareMessageSync !== 'undefined') {
-    window.messageSync = new CloudflareMessageSync();
-  }
-
   initHeroParticles();
   initRippleSystem();
-  initMessageSystem();
   initSmoothScroll();
 });
 
@@ -276,113 +271,6 @@ function initRippleSystem() {
     }));
     setTimeout(() => el.remove(), 1100);
   });
-}
-
-// ── 留言系统（保持原有逻辑）──
-function initMessageSystem() {
-  const form=document.getElementById('messageForm');
-  const list=document.getElementById('messageList');
-  const nameInput=document.getElementById('name');
-  const textInput=document.getElementById('messageText');
-  if(!form||!list||!nameInput||!textInput)return;
-
-  const fmt=d=>new Date(d).toLocaleString('zh-CN',{year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'});
-  const esc=s=>{const d=document.createElement('div');d.textContent=s;return d.innerHTML;};
-  const toast=(text,type='info')=>{
-    const t=document.createElement('div');
-    t.style.cssText=`position:fixed;top:90px;right:20px;padding:16px 24px;border-radius:12px;`+
-      `background:#2d3436;color:#dfe6e9;font-weight:500;z-index:9999;max-width:300px;word-break:break-word;`+
-      `box-shadow:8px 8px 16px #25292a,-8px -8px 16px #4a5052;`+
-      `border-left:4px solid ${({success:'#10b981',error:'#ef4444',info:'#74b9ff'})[type]||'#74b9ff'};`+
-      `opacity:0;transform:translateX(100%);transition:.3s`;
-    t.textContent=text;document.body.appendChild(t);
-    requestAnimationFrame(()=>{t.style.opacity='1';t.style.transform='translateX(0)'});
-    setTimeout(()=>{t.style.opacity='0';t.style.transform='translateX(100%)';setTimeout(()=>t.remove(),300)},3000);
-  };
-
-  function render(){
-    list.innerHTML='';
-    if(!messages.length){
-      list.innerHTML='<div style="text-align:center;padding:2rem;color:var(--text-muted)">暂无留言</div>';return;}
-    [...messages].reverse().forEach(m=>{
-      const div=document.createElement('div');
-      div.className='message-item';
-      div.innerHTML=`
-        <div class="message-header">
-          <div class="message-author-info">
-            <div class="message-avatar"><i data-lucide="user"></i></div>
-            <div><div class="message-author">${esc(m.name)}</div>
-            <div class="message-time">${m.time||fmt(Date.now())}</div></div>
-          </div>
-          <div class="message-location"><i data-lucide="map-pin"></i>${esc(m.location||'未知')}</div>
-        </div>
-        <p class="message-text">${esc(m.text)}</p>`;
-      list.appendChild(div);
-    });
-    typeof lucide!=='undefined'&&lucide.createIcons();
-  }
-
-  async function getLocation(){
-    try{
-      const r=await fetch('https://ipapi.co/json/',{signal:AbortSignal.timeout(3000),mode:'cors'});
-      if(r.ok){const d=await r.json();return d.city?`${d.city}, ${d.country_name}`:d.country_name||'未知地区';}
-    }catch(_){}
-    return '未知地区';
-  }
-
-  [['name','nameCounter',20],['messageText','messageTextCounter',500]].forEach(([inId,cId,max])=>{
-    const inp=document.getElementById(inId),cnt=document.getElementById(cId);
-    if(!inp||!cnt)return;
-    inp.addEventListener('input',()=>{
-      cnt.textContent=inp.value.length;
-      cnt.style.color=inp.value.length>=max?'#ef4444':inp.value.length>=max*0.8?'#f59e0b':'#95a5a6';
-    });
-  });
-
-  form.addEventListener('submit',async e=>{
-    e.preventDefault();
-    const name=nameInput.value.trim(),text=textInput.value.trim();
-    const btn=form.querySelector('[type=submit]');
-    if(!name){toast('请输入昵称','error');return;}
-    if(!text){toast('请输入留言','error');return;}
-
-    btn.disabled=true;btn.innerHTML='<span>提交中…</span>';
-    try{
-      const location=await getLocation();
-      const msg={id:Date.now(),name,text,time:fmt(Date.now()),location};
-      let ok=false;
-      if(window.messageSync){
-        const result=await window.messageSync.saveMessage(msg);ok=result.success;
-      }else ok=true;
-      if(ok){
-        messages.push(msg);
-        localStorage.setItem('messages',JSON.stringify(messages));
-        render();toast('留言已保存！','success');
-        nameInput.value='';textInput.value='';
-        nameInput.dispatchEvent(new Event('input'));textInput.dispatchEvent(new Event('input'));
-      }else toast('保存失败，请重试','error');
-    }catch(err){toast('提交失败','error')}
-    finally{
-      btn.disabled=false;btn.innerHTML='<span>发送</span>';
-      typeof lucide!=='undefined'&&lucide.createIcons();
-    }
-  });
-
-  async function load(){
-    try{
-      if(window.messageSync){
-        try{messages=await window.messageSync.getMessages(true)}catch(e){}
-      }
-      if(!messages.length){
-        const stored=localStorage.getItem('messages');
-        if(stored){try{messages=JSON.parse(stored).filter(m=>m.id&&m.name&&m.text)}catch(_){}}
-      }
-      if(!messages.length)
-        messages=[{id:1,name:'系统',text:'欢迎留言！',time:fmt(Date.now()),location:'线上'}];
-      render();
-    }catch(e){render()}
-  }
-  load();
 }
 
 // ── 平滑滚动 ──

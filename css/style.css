@@ -2259,3 +2259,8 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     box-shadow: 0 8px 24px rgba(0,0,0,.4);
 }
 .skill-tooltip.visible { opacity: 1; }
+
+.contact-pill.static {
+    cursor: default;
+    pointer-events: none;
+}
