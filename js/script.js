@@ -48,7 +48,7 @@ function initHeroParticles() {
     [0,217,255],[108,92,231],[247,148,161],[255,202,87],
     [72,219,133],[159,122,237],[255,118,117],
   ];
-  const FIXED_N = 900;
+  const FIXED_N = 3000;
   const MAX_SAMPLE_POINTS = Math.floor(FIXED_N * 0.9); // 确保目标点数 < 粒子数 → 全覆盖
 
   // 初始化固定粒子池
@@ -78,7 +78,7 @@ function initHeroParticles() {
     function extractPoints() {
       const imgData = octx.getImageData(0, 0, W, H).data;
       let pts = [];
-      let step = 3;
+      let step = 2;
       do {
         pts = [];
         for (let py = 0; py < H; py += step)
