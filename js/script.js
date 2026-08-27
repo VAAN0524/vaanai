@@ -72,8 +72,6 @@ function initHeroParticles() {
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
     const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
-    const maxW = W * 0.82, maxH = H * 0.40;   // 安全区
-    const marginX = W * 0.09, marginY = H * 0.18;
 
     // 从 ImageData 中提取非透明像素坐标
     function extractPoints() {
@@ -87,7 +85,7 @@ function initHeroParticles() {
       return pts;
     }
 
-    // 扫描实际渲染的包围盒（不依赖 measureText）
+    // 扫描实际渲染的包围盒
     function scanBBox() {
       const d = octx.getImageData(0, 0, W, H).data;
       let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
@@ -102,40 +100,51 @@ function initHeroParticles() {
       return { minX, maxX, minY, maxY };
     }
 
-    // 绘制指定字号的文字并清屏
-    function drawAt(fontSize) {
+    // 在指定位置绘制文字
+    function drawAt(fontSize, drawX, drawY) {
       octx.clearRect(0, 0, W, H);
       octx.font = `900 ${fontSize}px ${fonts}`;
       octx.fillStyle = '#fff';
       octx.textAlign = 'center';
       octx.textBaseline = 'middle';
-      octx.fillText(text, W / 2, H * 0.38);
+      octx.fillText(text, drawX, drawY);
     }
 
-    // 二分搜索最大能放入安全区的字号（用像素扫描验证）
-    let lo = 16, hi = Math.min(W, H);
+    // ── Step 1: 二分搜索最大能放入安全区的字号 ──
+    const targetCX = W / 2;
+    const targetCY = H * 0.40;
+
+    let lo = 20, hi = Math.min(W * 0.8, H * 0.5);
     let bestFs = lo;
 
     while (lo <= hi) {
       const mid = Math.floor((lo + hi) / 2);
-      drawAt(mid);
+      drawAt(mid, targetCX, targetCY);
       const bb = scanBBox();
 
-      const wFits = (bb.maxX - bb.minX) <= maxW;
-      const hFits = (bb.maxY - bb.minY) <= maxH;
-      const xSafe = bb.minX >= marginX * 0.5 && bb.maxX <= W - marginX * 0.5;
-      const ySafe = bb.minY >= marginY * 0.5 && bb.maxY <= H - marginY * 0.5;
+      // 验证实际渲染包围盒在画布内（有最少 5% 边距）
+      const paddingX = W * 0.05, paddingY = H * 0.05;
+      const fits =
+        bb.minX >= paddingX && bb.maxX <= W - paddingX &&
+        bb.minY >= paddingY && bb.maxY <= H - paddingY;
 
-      if (wFits && hFits && xSafe && ySafe) {
-        bestFs = mid;
-        lo = mid + 1; // 尝试更大
-      } else {
-        hi = mid - 1; // 太大，缩小
-      }
+      if (fits) { bestFs = mid; lo = mid + 1; }
+      else { hi = mid - 1; }
     }
 
-    // 用验证过的字号最终绘制并采样像素点
-    drawAt(bestFs);
+    // ── Step 2: 找到字号后，根据实际渲染包围盒校准居中位置 ──
+    drawAt(bestFs, targetCX, targetCY);
+    let bb = scanBBox();
+
+    // 计算偏移量，使包围盒中心精确对齐目标中心
+    const bboxCY = (bb.minY + bb.maxY) / 2;
+    const dy = targetCY - bboxCY;
+    const bboxCX = (bb.minX + bb.maxX) / 2;
+    const dx = targetCX - bboxCX;
+
+    // 用校准后的坐标重新绘制并采样
+    drawAt(bestFs, targetCX + dx, targetCY + dy);
+
     return extractPoints();
   }
 
