@@ -51,7 +51,7 @@
 ## 🚀 快速开始
 
 ### 在线预览
-👉 **[https://vaan.pages.dev](https://vaan.pages.dev)**
+👉 **[https://vaanai.pages.dev](https://vaanai.pages.dev)**
 
 ### 本地运行
 ```bash
