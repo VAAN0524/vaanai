@@ -319,10 +319,24 @@ function initHeroParticles() {
     }
   }
 
+  let heroPaused = false
+  let heroRafId = 0
   function loop(t) {
+    if (heroPaused) return
     drawHero(t);
-    requestAnimationFrame(loop);
+    heroRafId = requestAnimationFrame(loop);
   }
+
+  window.addEventListener('vaanai:pause-animations', () => {
+    heroPaused = true
+    cancelAnimationFrame(heroRafId)
+  })
+  window.addEventListener('vaanai:resume-animations', () => {
+    if (heroPaused) {
+      heroPaused = false
+      heroRafId = requestAnimationFrame(loop)
+    }
+  })
 
   requestAnimationFrame(loop);
 }
@@ -397,41 +411,96 @@ window.addEventListener('scroll',()=>{
   });
 })();
 
-// ===== 项目实景演示模态框 =====
+// ===== 项目实景演示模态框（修卡死版：释放解码器 + 暂停背景动画）=====
+let bodyOverflowPrev = ''
+let bgAnimPaused = false
+
+function pausePageAnimations() {
+  if (bgAnimPaused) return
+  bgAnimPaused = true
+  // 暂停背景/英雄粒子 rAF，模态视频解码时把合成资源让出来
+  window.dispatchEvent(new CustomEvent('vaanai:pause-animations'))
+}
+
+function resumePageAnimations() {
+  if (!bgAnimPaused) return
+  bgAnimPaused = false
+  window.dispatchEvent(new CustomEvent('vaanai:resume-animations'))
+}
+
 function openVideoModal(videoSrc, title, detailHTML) {
-  const modal = document.getElementById('videoModal');
-  const player = document.getElementById('videoModalPlayer');
-  document.getElementById('videoModalTitle').textContent = title;
-  document.getElementById('videoModalDetail').innerHTML = detailHTML || '';
-  player.src = videoSrc;
-  player.play().catch(() => {});
-  modal.classList.add('open');
-  document.body.style.overflow = 'hidden';
+  const modal = document.getElementById('videoModal')
+  const player = document.getElementById('videoModalPlayer')
+  document.getElementById('videoModalTitle').textContent = title
+  document.getElementById('videoModalDetail').innerHTML = detailHTML || ''
+  bodyOverflowPrev = document.body.style.overflow
+  player.src = videoSrc
+  player.play().catch(() => {})
+  modal.classList.add('open')
+  document.body.style.overflow = 'hidden'
+  pausePageAnimations()
 }
 
 function closeVideoModal() {
-  const modal = document.getElementById('videoModal');
-  const player = document.getElementById('videoModalPlayer');
-  player.pause();
-  player.src = '';
-  modal.classList.remove('open');
-  document.body.style.overflow = '';
+  const modal = document.getElementById('videoModal')
+  const player = document.getElementById('videoModalPlayer')
+  // 彻底释放视频解码器（仅 pause/src='' 在 Safari 会保留解码层导致卡顿）
+  player.pause()
+  player.removeAttribute('src')
+  player.load()
+  modal.classList.remove('open')
+  document.body.style.overflow = bodyOverflowPrev
+  resumePageAnimations()
 }
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeVideoModal();
-});
+  if (e.key === 'Escape') closeVideoModal()
+})
 
-// 绑定所有演示按钮
+// 绑定详细介绍按钮（点击放大版）
 document.querySelectorAll('.demo-btn').forEach((btn) => {
   btn.addEventListener('click', (e) => {
-    e.stopPropagation();
-    const card = btn.closest('.proj-card');
-    const detail = card?.querySelector('.proj-detail');
+    e.stopPropagation()
+    const card = btn.closest('.proj-card')
+    const detail = card?.querySelector('.proj-detail')
     openVideoModal(
       btn.dataset.video,
       card?.dataset.name || card?.querySelector('h3')?.textContent || '项目演示',
       detail ? detail.innerHTML : ''
-    );
-  });
-});
+    )
+  })
+})
+
+// ===== 外露视频：进入视口才播放，离开即暂停（避免 7 路解码叠加卡死）=====
+const cardVideos = document.querySelectorAll('.proj-video-wrap video')
+const videoObserver = new IntersectionObserver(
+  (entries) => {
+    entries.forEach((entry) => {
+      const v = entry.target
+      if (entry.isIntersecting) {
+        if (!v.dataset.src) {
+          v.dataset.src = v.parentElement.dataset.video
+          v.src = v.dataset.src
+        }
+        v.play().catch(() => {})
+      } else {
+        v.pause()
+      }
+    })
+  },
+  { threshold: 0.35 }
+)
+cardVideos.forEach((v) => videoObserver.observe(v))
+
+// 点击外露视频也打开大窗介绍
+document.querySelectorAll('.proj-video-wrap').forEach((wrap) => {
+  wrap.addEventListener('click', () => {
+    const card = wrap.closest('.proj-card')
+    const detail = card?.querySelector('.proj-detail')
+    openVideoModal(
+      wrap.dataset.video,
+      card?.dataset.name || card?.querySelector('h3')?.textContent || '项目演示',
+      detail ? detail.innerHTML : ''
+    )
+  })
+})

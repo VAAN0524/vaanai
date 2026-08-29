@@ -2561,8 +2561,8 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
 .video-modal-backdrop {
   position: absolute;
   inset: 0;
-  background: rgba(4, 8, 18, 0.88);
-  backdrop-filter: blur(6px);
+  /* 不用 backdrop-filter：大面积实时模糊是 Safari 卡死元凶之一 */
+  background: rgba(4, 8, 18, 0.94);
 }
 
 .video-modal-body {
@@ -2620,4 +2620,40 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
 .video-modal-close:hover {
   background: rgba(245, 108, 108, 0.25);
   border-color: rgba(245, 108, 108, 0.6);
+}
+
+/* ===== 项目卡外露演示视频 ===== */
+.proj-video-wrap {
+  position: relative;
+  margin: 14px -6px 0;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 1px solid rgba(64, 158, 255, 0.25);
+  background: #000;
+}
+
+.proj-video-wrap video {
+  width: 100%;
+  display: block;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+}
+
+.proj-video-wrap::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent 62%, rgba(4, 8, 18, 0.72));
+}
+
+.proj-video-hint {
+  position: absolute;
+  left: 10px;
+  bottom: 8px;
+  z-index: 1;
+  font-size: 12px;
+  color: #cfe3ff;
+  letter-spacing: 0.5px;
 }

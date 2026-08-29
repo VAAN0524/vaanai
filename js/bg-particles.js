@@ -161,14 +161,29 @@
     }
   }
 
-  // ── 主循环 ──
+  // ── 主循环（支持模态打开时暂停，让出合成资源防卡顿）──
+  let animPaused = false
+  let rafId = 0
+
   function draw(t) {
+    if (animPaused) return
     ctx.clearRect(0,0,W,H);
     drawGrid();       // 网格线（移动）
     drawPulses();     // 电流脉冲（沿网格线流动）
     drawParticles(t); // 流动粒子
-    requestAnimationFrame(draw);
+    rafId = requestAnimationFrame(draw);
   }
+
+  window.addEventListener('vaanai:pause-animations', () => {
+    animPaused = true
+    cancelAnimationFrame(rafId)
+  })
+  window.addEventListener('vaanai:resume-animations', () => {
+    if (animPaused) {
+      animPaused = false
+      rafId = requestAnimationFrame(draw)
+    }
+  })
 
   // 初始几个脉冲
   for (let i = 0; i < 8; i++) spawnPulse();
