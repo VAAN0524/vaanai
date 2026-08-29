@@ -18,12 +18,12 @@ document.addEventListener('DOMContentLoaded', () => {
 // 整段个人经历拆为短语序列，全部以粒子形态轮播讲完（无 DOM 文字段）
 const HERO_WORDS = [
   'Vaan',
-  'AI Builder',
+  'Ai Builder',
   '临床药学五年制',
   '深耕 IVD 行业十年',
   '从零到一建部门',
   '统筹多业务条线',
-  '积极拥抱 AI',
+  '积极拥抱 Ai',
   '从零搭建业务流',
   '重复交给自动化',
   '经验沉淀为 Skills',
