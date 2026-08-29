@@ -23,6 +23,7 @@ const HERO_WORDS = [
   '深耕 IVD 行业十年',
   '从零到一建部门',
   '统筹多业务条线',
+  '积极拥抱 AI',
   '从零搭建业务流',
   '重复交给自动化',
   '经验沉淀为 Skills',
@@ -38,10 +39,17 @@ function initHeroParticles() {
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H;
+  // 自适应：窄屏缩减激活粒子数 + 缩小粒径，避免粗粒子挤糊小字号
+  let activeN = 5000;
+  let SZ_SCALE = 1;
 
   function resize() {
     W = canvas.width = canvas.parentElement.offsetWidth;
     H = canvas.height = canvas.parentElement.offsetHeight;
+    if (W < 480)      { activeN = 2400; SZ_SCALE = 0.5; }
+    else if (W < 768) { activeN = 3200; SZ_SCALE = 0.62; }
+    else if (W < 1200){ activeN = 4200; SZ_SCALE = 0.85; }
+    else              { activeN = 5000; SZ_SCALE = 1; }
   }
   resize();
   window.addEventListener('resize', resize);
@@ -51,7 +59,8 @@ function initHeroParticles() {
     [72,219,133],[159,122,237],[255,118,117],
   ];
   const FIXED_N = 5000;
-  const MAX_SAMPLE_POINTS = Math.floor(FIXED_N * 0.9); // 确保目标点数 < 粒子数 → 全覆盖
+  // 目标采样点数随激活粒子数缩放，确保目标点 < 粒子数 → 全覆盖
+  const MAX_SAMPLE_POINTS = () => Math.floor(activeN * 0.9);
 
   // 初始化固定粒子池
   const particles = [];
@@ -87,8 +96,8 @@ function initHeroParticles() {
           for (let px = 0; px < W; px += step)
             if (imgData[(py * W + px) * 4 + 3] > 60)
               pts.push(px, py);
-        if (pts.length / 2 > MAX_SAMPLE_POINTS) step++;
-      } while (pts.length / 2 > MAX_SAMPLE_POINTS && step < 40);
+        if (pts.length / 2 > MAX_SAMPLE_POINTS()) step++;
+      } while (pts.length / 2 > MAX_SAMPLE_POINTS() && step < 40);
       return pts;
     }
 
@@ -161,7 +170,7 @@ function initHeroParticles() {
   function assignTargets(word) {
     const pts = getPoints(word);
     const numPts = pts.length / 2;
-    for (let i = 0; i < FIXED_N; i++) {
+    for (let i = 0; i < activeN; i++) {
       // 多粒子堆叠同一目标点 → 文字加粗清晰
       const idx = (i % numPts) * 2;
       particles[i].tx = pts[idx];
@@ -213,12 +222,12 @@ function initHeroParticles() {
       case STATE.FORM: {
         stateTimer++;
         // 可聚合的粒子数（按 delay 错峰解锁）
-        const unlocked = Math.min(FIXED_N, stateTimer * (FIXED_N / 45));
+        const unlocked = Math.min(activeN, stateTimer * (activeN / 45));
 
         // 后期冲刺：时间过半后弹簧力倍增，确保所有粒子精确归位
         const sprint = stateTimer > 60 ? 1 + (stateTimer - 60) * 0.06 : 1;
 
-        for (let i = 0; i < FIXED_N; i++) {
+        for (let i = 0; i < activeN; i++) {
           const p = particles[i];
 
           if (i < unlocked) {
@@ -242,7 +251,7 @@ function initHeroParticles() {
             }
           }
           ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
-          ctx.fillRect(p.x, p.y, p.sz, p.sz);
+          ctx.fillRect(p.x, p.y, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
         }
 
         // 全部粒子到达（渐近判定：时间够长即视为完成，不做 settled 检查避免状态跳变）
@@ -256,12 +265,13 @@ function initHeroParticles() {
       case STATE.HOLD: {
         stateTimer++;
 
-        for (const p of particles) {
+        for (let i = 0; i < activeN; i++) {
+          const p = particles[i];
           // 微呼吸
           const bx = p.x + Math.sin(t * 0.0015 + p.stiffness * 500) * 0.6;
           const by = p.y + Math.cos(t * 0.0012 + p.stiffness * 300) * 0.5;
           ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
-          ctx.fillRect(bx, by, p.sz, p.sz);
+          ctx.fillRect(bx, by, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
         }
 
         // 停留 ~1.2s → 散开（在进入 SCATTER 前不赋速度，SCATTER 内按 delay 错峰赋）
@@ -291,7 +301,7 @@ function initHeroParticles() {
         // 65 帧后弹簧力渐增（和散开惯性叠加 → 平滑转向聚合）
         const attractRamp = stateTimer > 65 ? Math.min(1, (stateTimer - 65) / 50) : 0;
 
-        for (let i = 0; i < FIXED_N; i++) {
+        for (let i = 0; i < activeN; i++) {
           const p = particles[i];
 
           // 按 delay 错峰散开（前 delay 帧保持不动 → 文字逐渐"融化"而非撕裂）
@@ -315,7 +325,7 @@ function initHeroParticles() {
           }
 
           ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
-          ctx.fillRect(p.x, p.y, p.sz, p.sz);
+          ctx.fillRect(p.x, p.y, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
         }
 
         // 散开+转向 ~2.2s 后 → 进入 FORM（弹簧力已是全力，无缝继续聚合）
