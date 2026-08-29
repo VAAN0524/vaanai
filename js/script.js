@@ -46,8 +46,8 @@ function initHeroParticles() {
   function resize() {
     W = canvas.width = canvas.parentElement.offsetWidth;
     H = canvas.height = canvas.parentElement.offsetHeight;
-    if (W < 480)      { activeN = 2400; SZ_SCALE = 0.5; }
-    else if (W < 768) { activeN = 3200; SZ_SCALE = 0.62; }
+    if (W < 480)      { activeN = 2400; SZ_SCALE = 0.45; }
+    else if (W < 768) { activeN = 3200; SZ_SCALE = 0.55; }
     else if (W < 1200){ activeN = 4200; SZ_SCALE = 0.85; }
     else              { activeN = 5000; SZ_SCALE = 1; }
   }
@@ -134,7 +134,9 @@ function initHeroParticles() {
     const maxGlyphY = H * (isNarrow ? 0.62 : 0.78);
 
     // 放宽尺寸限制：宽度 92%、高度自适应（充分利用屏幕空间）
+    // 窄屏额外封顶字号：避免短语贴满屏宽导致笔画与采样网格同量级而碎裂
     let lo = 20, hi = Math.min(W * 0.94, H * 0.6);
+    if (isNarrow) hi = Math.min(hi, W * 0.17);
     let bestFs = lo;
 
     while (lo <= hi) {
