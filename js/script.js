@@ -396,3 +396,42 @@ window.addEventListener('scroll',()=>{
     });
   });
 })();
+
+// ===== 项目实景演示模态框 =====
+function openVideoModal(videoSrc, title, detailHTML) {
+  const modal = document.getElementById('videoModal');
+  const player = document.getElementById('videoModalPlayer');
+  document.getElementById('videoModalTitle').textContent = title;
+  document.getElementById('videoModalDetail').innerHTML = detailHTML || '';
+  player.src = videoSrc;
+  player.play().catch(() => {});
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeVideoModal() {
+  const modal = document.getElementById('videoModal');
+  const player = document.getElementById('videoModalPlayer');
+  player.pause();
+  player.src = '';
+  modal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeVideoModal();
+});
+
+// 绑定所有演示按钮
+document.querySelectorAll('.demo-btn').forEach((btn) => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const card = btn.closest('.proj-card');
+    const detail = card?.querySelector('.proj-detail');
+    openVideoModal(
+      btn.dataset.video,
+      card?.dataset.name || card?.querySelector('h3')?.textContent || '项目演示',
+      detail ? detail.innerHTML : ''
+    );
+  });
+});

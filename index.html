@@ -54,58 +54,107 @@
         <h2 class="section-title" data-text="原创项目"><span class="title-accent">▍</span>原创项目</h2>
         <div class="project-grid">
 
-            <div class="proj-card featured"><div class="scanline"></div>
+            <div class="proj-card featured" data-video="videos/qq-proxy-showcase.mp4" data-name="QQ-Claude-Proxy"><div class="scanline"></div>
                 <div class="proj-icon ai"><i data-lucide="bot"></i></div>
                 <h3>QQ-Claude-Proxy</h3>
                 <p>通过 QQ 机器人远程操控本地 Claude Code CLI。代码留在本机，随时随地写码。带 watchdog 和完整测试。</p>
                 <div class="tags"><span>TypeScript</span><span>Node.js</span><span>Vitest</span></div>
                 <div class="proj-meta"><span class="status-dot stable"></span>v2.1.0 公开发布</div>
+                <button class="demo-btn" data-video="videos/qq-proxy-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>工作原理</h4>
+                  <p>QQ 消息 → 消息队列 → 本地 Claude Code CLI 执行 → 结果回传 QQ。机器上的代码不出本机，手机发一条消息就能让 AI 改 bug、跑测试、提交代码。</p>
+                  <h4>工程亮点</h4>
+                  <p>watchdog 守护进程断线自愈 · 多会话隔离 · Vitest 完整测试体系 · v2.1.0 公开发布</p>
+                </div>
             </div>
 
-            <div class="proj-card featured"><div class="scanline"></div>
+            <div class="proj-card featured" data-video="videos/drawio-showcase.mp4" data-name="DrawIO Scientific Illustrator"><div class="scanline"></div>
                 <div class="proj-icon art"><i data-lucide="pen-tool"></i></div>
                 <h3>DrawIO Scientific Illustrator</h3>
                 <p>MCP 协议插件——让 AI 在 draw.io 画布上实时绘制科研图。双 MCP Server 架构，支持 Windows / macOS。</p>
                 <div class="tags"><span>MCP Protocol</span><span>Node.js</span><span>draw.io</span></div>
                 <div class="proj-meta"><span class="status-dot stable"></span>MIT 开源</div>
+                <button class="demo-btn" data-video="videos/drawio-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>工作原理</h4>
+                  <p>对话式描述 → AI 拆解图形结构 → 通过 MCP 协议在 draw.io 画布上实时绘制/编辑。流程图、实验示意图、论文插图全部对话生成。</p>
+                  <h4>工程亮点</h4>
+                  <p>画布操控 + 图形编排双 MCP Server · 节点级校验的冒烟测试框架 · 跨平台一键安装器 · MIT 开源</p>
+                </div>
             </div>
 
-            <div class="proj-card featured"><div class="scanline"></div>
+            <div class="proj-card featured" data-video="videos/erp-showcase.mp4" data-name="库存管理系统 ERP"><div class="scanline"></div>
                 <div class="proj-icon biz"><i data-lucide="bar-chart-3"></i></div>
                 <h3>库存管理系统 ERP</h3>
-                <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 + PostgreSQL 全栈独立完成。</p>
-                <div class="tags"><span>Go/Gin</span><span>Vue3/TS</span><span>PostgreSQL</span><span>Redis</span><span>Docker</span></div>
-                <div class="proj-meta"><span class="status-dot active"></span>全栈独立开发</div>
+                <p>采购销售库存 FIFO 批次成本核算 + 实时仪表盘 WebSocket 推送。Go + Vue3 全栈独立完成，支持 AI 录单与 MCP 直连。</p>
+                <div class="tags"><span>Go/Gin</span><span>Vue3/TS</span><span>WebSocket</span><span>MCP</span><span>SQLite/WAL</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>全栈独立开发 · 21 项单测</div>
+                <button class="demo-btn" data-video="videos/erp-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>核心能力</h4>
+                  <p>采购 / 销售 / 库存 / 财务四大闭环，FIFO 批次成本核算，销售退货按日冲减的净口径利润。仪表盘 KPI 由 WebSocket 推送重算结果，数字滚动实时更新。</p>
+                  <h4>智能化</h4>
+                  <p>拍照识别纸质单据自动建单（视觉大模型草稿确认）· 单据模板与自定义列 · 一键打印 A4/针式凭证纸/热敏小票 · MCP Server 让 ZCode/Claude 等桌面 AI 用自然语言操作全部业务（49 个工具）。</p>
+                  <h4>工程质量</h4>
+                  <p>RBAC 权限矩阵 + 人话审计日志 · JWT/CORS/WS Origin 加固 · 生产模式单进程部署（双击启动约 2 秒）· 启动自动 VACUUM 备份保留 7 份。</p>
+                </div>
             </div>
 
-            <div class="proj-card"><div class="scanline"></div>
+            <div class="proj-card" data-video="videos/slime-showcase.mp4" data-name="Slime 桌面宠物"><div class="scanline"></div>
                 <div class="proj-icon fun"><i data-lucide="droplets"></i></div>
                 <h3>Slime 桌面宠物</h3>
                 <p>macOS 透明史莱姆：果冻渲染（Beer-Lambert 光学模型）、表情系统、跳跃物理 squash & stretch。</p>
                 <div class="tags"><span>Python</span><span>PyObjC</span><span>CoreAnimation</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>桌面上常住</div>
+                <button class="demo-btn" data-video="videos/slime-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>实现细节</h4>
+                  <p>Beer-Lambert 光学模型模拟半透明果冻质感（非贴图）；NSPanel 透明窗口悬浮桌面；squash & stretch 挤压拉伸跳跃物理，idle/up/down/hori 四种跳跃类型；会跟随窗口眨眼与表情变化。</p>
+                </div>
             </div>
 
-            <div class="proj-card"><div class="scanline"></div>
+            <div class="proj-card" data-video="videos/particle-showcase.mp4" data-name="Particle Painting"><div class="scanline"></div>
                 <div class="proj-icon art"><i data-lucide="sparkles"></i></div>
                 <h3>Particle Painting</h3>
                 <p>你眼前这个效果——文字从烟雾流沙中聚拢成形。Canvas/WebGL 粒子系统，从零构建流场与弹簧动力学。</p>
                 <div class="tags"><span>Canvas 2D</span><span>粒子系统</span><span>Curl Noise</span></div>
+                <div class="proj-meta"><span class="status-dot active"></span>本站首页在用</div>
+                <button class="demo-btn" data-video="videos/particle-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>技术实现</h4>
+                  <p>数万粒子常驻全屏流沙（curl noise 无散度流场）；指令下达时按"到目标点距离"驱动状态混合——近的粒子先锁定，像沙粒被无形的手抹成文字；CONVERGE→HOLD→DISPERSE 误差驱动状态机保证切换永不跳变。</p>
+                  <h4>踩坑沉淀</h4>
+                  <p>加法混合过曝 → NormalBlending；文字像素采样动态步进防截断；二分字号 + 实际像素 bbox 扫描保证移动端不越界。</p>
+                </div>
             </div>
 
-            <div class="proj-card"><div class="scanline"></div>
+            <div class="proj-card" data-video="videos/digitalhuman-showcase.mp4" data-name="数字人推理管线"><div class="scanline"></div>
                 <div class="proj-icon ai"><i data-lucide="video"></i></div>
                 <h3>数字人推理管线设计</h3>
                 <p>自主设计的实时口型同步 pipeline：音频驱动 → 推理 → 超分增强 → RTMP 推流全链路架构与工程实现。</p>
                 <div class="tags"><span>Pipeline 架构</span><span>MPS 加速</span><span>TTS 集成</span></div>
                 <div class="proj-meta"><span class="status-dot active"></span>活跃开发</div>
+                <button class="demo-btn" data-video="videos/digitalhuman-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>全链路</h4>
+                  <p>Qwen3-TTS 声音克隆 → Wav2Lip 口型推理（Apple Silicon MPS 加速）→ GFPGAN 人脸超分修复 → RTMP 实时推流。整条管线在 M1 Max 上本地运行，无需云端 GPU。</p>
+                </div>
             </div>
 
-            <div class="proj-card"><div class="scanline"></div>
+            <div class="proj-card" data-video="videos/skills-showcase.mp4" data-name="Agent Skills 技能库"><div class="scanline"></div>
                 <div class="proj-icon tools"><i data-lucide="layers"></i></div>
                 <h3>Agent Skills 技能库</h3>
                 <p>根据实际工作流程沉淀的自定义 Claude/Codex Agent Skills——从工作流分析到 skill 编写、测试、分类归档的完整体系。</p>
                 <div class="tags"><span>Claude Code</span><span>Workshop 设计</span><span>Workflow → Skill</span></div>
                 <div class="proj-meta"><span class="status-dot active"></span>持续新增</div>
+                <button class="demo-btn" data-video="videos/skills-showcase.mp4">▶ 实景演示</button>
+                <div class="proj-detail">
+                  <h4>原创代表作</h4>
+                  <p>数字人 avatar 管线 · 本地 TTS 录音棚 · 离线语音网关 · 有声书导演 · FastVideo Metal 加速 · 搜索路由 · 公众号抓取/发布 · draw.io 科研绘图 · Obsidian 全栈工具 · Office 文档技能。</p>
+                  <h4>体系</h4>
+                  <p>8 大分类、142+ skills 全量 GitHub 同步（myskills 仓库），SKILL.md 标准化，Claude Code / Codex / ZCode 即插即用。</p>
+                </div>
             </div>
 
         </div>
@@ -206,6 +255,19 @@
         </div>
     </div>
 </section>
+
+<!-- 项目实景演示模态框 -->
+<div class="video-modal" id="videoModal">
+    <div class="video-modal-backdrop" onclick="closeVideoModal()"></div>
+    <div class="video-modal-body">
+        <button class="video-modal-close" onclick="closeVideoModal()">✕</button>
+        <h3 id="videoModalTitle"></h3>
+        <div class="video-modal-player">
+            <video id="videoModalPlayer" controls autoplay loop></video>
+        </div>
+        <div class="video-modal-detail" id="videoModalDetail"></div>
+    </div>
+</div>
 
 <footer class="footer">
     <div class="container footer-inner">
