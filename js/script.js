@@ -15,23 +15,29 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Hero 粒子循环轮播 — 同一批粒子永不消失，形态之间连续变幻 ──
-// 整段个人经历拆为短语序列，全部以粒子形态轮播讲完（无 DOM 文字段）
+// 整段个人经历拆为故事节拍序列，全部以粒子形态轮播讲完（无 DOM 文字段）
+// 每条可以是字符串，或 { d: 桌面单行版, m: 手机竖屏多行版 }——多行能容纳更完整的叙事
 const HERO_WORDS = [
   'Vaan',
   'Ai Builder',
-  '临床药学五年制',
-  '深耕 IVD 行业十年',
-  '从零到一建部门',
-  '统筹多业务条线',
-  '积极拥抱 Ai',
-  '从零搭建业务流',
-  '重复交给自动化',
-  '经验沉淀为 Skills',
-  '经验不断层',
-  '业务不停滞',
-  '以少胜多',
-  '合规第一 · 长期主义',
-  '◆ 开源 · 分享 ◆',
+  { d: '临床药学五年制科班出身',
+    m: ['从临床药学的五年', '到库房管理的十年'] },
+  { d: '深耕 IVD 行业十年',
+    m: ['一间库房', '深耕 IVD 十年'] },
+  { d: '从零到一建部门',
+    m: ['从零到一', '把部门建起来'] },
+  { d: '积极拥抱 Ai',
+    m: ['Ai 浪潮来临', '我选择冲在浪上'] },
+  { d: '从零搭建业务流',
+    m: ['把繁复的重复', '统统交给自动化'] },
+  { d: '经验沉淀为 Skills',
+    m: ['把经验写成 Skills', '人来人往', '业务照转不断层'] },
+  { d: '以少胜多',
+    m: ['一个人', '活成一支队伍'] },
+  { d: '合规第一 · 长期主义',
+    m: ['紧跟监管变化', '合规放在第一位', '业务才走得长远'] },
+  { d: '◆ 药学人的严谨 × 工程师的浪漫 ◆',
+    m: ['药学人的严谨', '× 工程师的浪漫'] },
 ];
 
 function initHeroParticles() {
@@ -42,6 +48,7 @@ function initHeroParticles() {
   // 自适应：窄屏缩减激活粒子数 + 缩小粒径，避免粗粒子挤糊小字号
   let activeN = 5000;
   let SZ_SCALE = 1;
+  let curLines = 1; // 当前节拍行数（多行时 HOLD 停留更久）
 
   function resize() {
     W = canvas.width = canvas.parentElement.offsetWidth;
@@ -79,11 +86,13 @@ function initHeroParticles() {
     });
   }
 
-  function getPoints(text) {
+  function getPoints(lines) {
     const offc = document.createElement('canvas');
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
-    const fonts = '-apple-system,"PingFang SC","STXingkai",sans-serif';
+    // 常规体（400）：笔画细 → 粒子拼出的字符笔画分明，比 900 粗体易读得多
+    const fonts = '"PingFang SC","Helvetica Neue",sans-serif';
+    const LH = 1.4; // 多行行距（相对字号）
 
     // 从 ImageData 中提取非透明像素坐标（限制总数 ≤ MAX_SAMPLE_POINTS）
     function extractPoints() {
@@ -116,14 +125,15 @@ function initHeroParticles() {
       return { minX, maxX, minY, maxY };
     }
 
-    // 在指定位置绘制文字
+    // 在指定位置绘制文字块（多行垂直居中堆叠）
     function drawAt(fontSize, drawX, drawY) {
       octx.clearRect(0, 0, W, H);
-      octx.font = `900 ${fontSize}px ${fonts}`;
+      octx.font = `400 ${fontSize}px ${fonts}`;
       octx.fillStyle = '#fff';
       octx.textAlign = 'center';
       octx.textBaseline = 'middle';
-      octx.fillText(text, drawX, drawY);
+      const y0 = drawY - (lines.length - 1) * fontSize * LH / 2;
+      lines.forEach((ln, i) => octx.fillText(ln, drawX, y0 + i * fontSize * LH));
     }
 
     // ── Step 1: 二分搜索最大能放入安全区的字号 ──
@@ -134,9 +144,10 @@ function initHeroParticles() {
     const maxGlyphY = H * (isNarrow ? 0.62 : 0.78);
 
     // 放宽尺寸限制：宽度 92%、高度自适应（充分利用屏幕空间）
-    // 窄屏额外封顶字号：避免短语贴满屏宽导致笔画与采样网格同量级而碎裂
+    // 窄屏封顶字号：避免短语贴满屏宽导致笔画与采样网格同量级而碎裂
+    // 多行版行长更短，封顶放宽 → 字更大更易读
     let lo = 20, hi = Math.min(W * 0.94, H * 0.6);
-    if (isNarrow) hi = Math.min(hi, W * 0.17);
+    if (isNarrow) hi = Math.min(hi, W * (lines.length > 1 ? 0.2 : 0.17));
     let bestFs = lo;
 
     while (lo <= hi) {
@@ -169,8 +180,16 @@ function initHeroParticles() {
     return extractPoints();
   }
 
-  function assignTargets(word) {
-    const pts = getPoints(word);
+  // 当前节拍 → 按视口取桌面单行版或手机多行版
+  function currentSlide() {
+    const w = HERO_WORDS[wordIdx];
+    if (typeof w === 'string') return [w];
+    return W < 768 ? w.m : [w.d];
+  }
+
+  function assignTargets(lines) {
+    curLines = lines.length;
+    const pts = getPoints(lines);
     const numPts = pts.length / 2;
     for (let i = 0; i < activeN; i++) {
       // 多粒子堆叠同一目标点 → 文字加粗清晰
@@ -214,7 +233,7 @@ function initHeroParticles() {
     p.dampV = 0.90 + Math.random() * 0.06;     // 可变阻尼
   }
 
-  assignTargets(HERO_WORDS[0]);
+  assignTargets(currentSlide());
 
   function drawHero(t) {
     ctx.clearRect(0, 0, W, H);
@@ -276,8 +295,8 @@ function initHeroParticles() {
           ctx.fillRect(bx, by, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
         }
 
-        // 停留 ~1.2s → 散开（在进入 SCATTER 前不赋速度，SCATTER 内按 delay 错峰赋）
-        if (stateTimer > 75) {
+        // 停留后散开（多行节拍文字更多，停留更久让手机用户读完）
+        if (stateTimer > (curLines > 1 ? 110 : 75)) {
           state = STATE.SCATTER;
           stateTimer = 0;
           // 为每个粒子准备散开方向（但不是现在就动——等 delay 解锁后才动）
@@ -297,7 +316,7 @@ function initHeroParticles() {
         // 散开到 65% 时切换下一个词的目标
         if (stateTimer === 50) {
           wordIdx = (wordIdx + 1) % HERO_WORDS.length;
-          assignTargets(HERO_WORDS[wordIdx]);
+          assignTargets(currentSlide());
         }
 
         // 65 帧后弹簧力渐增（和散开惯性叠加 → 平滑转向聚合）
