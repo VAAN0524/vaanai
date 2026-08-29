@@ -15,20 +15,21 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Hero 粒子循环轮播 — 同一批粒子永不消失，形态之间连续变幻 ──
-// 经历与理念关键词也纳入轮播，全部以粒子形态浮现
+// 整段个人经历拆为短语序列，全部以粒子形态轮播讲完（无 DOM 文字段）
 const HERO_WORDS = [
   'Vaan',
   'AI Builder',
   '临床药学五年制',
-  'IVD 仓储十年',
+  '深耕 IVD 仓储十年',
   '从零到一建部门',
-  '数字造物者',
+  '统筹多业务条线',
+  '从零搭建业务流',
+  '重复交给自动化',
+  '经验沉淀为 Skills',
   '经验不断层',
-  '✦ 518 Skills ✦',
   '业务不停滞',
   '以少胜多',
-  '合规第一',
-  '用代码构建',
+  '合规第一 · 长期主义',
   '◆ 开源 · 分享 ◆',
 ];
 
@@ -120,8 +121,8 @@ function initHeroParticles() {
     // 目标中心：水平居中，垂直偏上（底部让位给经历陈述区）
     const isNarrow = W < 768;
     const targetCX = W / 2;
-    const targetCY = H * (isNarrow ? 0.30 : 0.40);
-    const maxGlyphY = H * (isNarrow ? 0.56 : 0.68);
+    const targetCY = H * (isNarrow ? 0.36 : 0.44);
+    const maxGlyphY = H * (isNarrow ? 0.62 : 0.78);
 
     // 放宽尺寸限制：宽度 92%、高度自适应（充分利用屏幕空间）
     let lo = 20, hi = Math.min(W * 0.94, H * 0.6);
@@ -263,8 +264,8 @@ function initHeroParticles() {
           ctx.fillRect(bx, by, p.sz, p.sz);
         }
 
-        // 停留 ~1.8s → 散开（在进入 SCATTER 前不赋速度，SCATTER 内按 delay 错峰赋）
-        if (stateTimer > 110) {
+        // 停留 ~1.2s → 散开（在进入 SCATTER 前不赋速度，SCATTER 内按 delay 错峰赋）
+        if (stateTimer > 75) {
           state = STATE.SCATTER;
           stateTimer = 0;
           // 为每个粒子准备散开方向（但不是现在就动——等 delay 解锁后才动）
@@ -317,8 +318,8 @@ function initHeroParticles() {
           ctx.fillRect(p.x, p.y, p.sz, p.sz);
         }
 
-        // 散开+转向 ~3s 后 → 进入 FORM（弹簧力已是全力，无缝继续聚合）
-        if (stateTimer > 170) {
+        // 散开+转向 ~2.2s 后 → 进入 FORM（弹簧力已是全力，无缝继续聚合）
+        if (stateTimer > 135) {
           state = STATE.FORM;
           stateTimer = 45; // FORM 前 45 帧的 unlock 已覆盖全部粒子，直接全力聚合
         }

@@ -1905,8 +1905,6 @@ body {
 
     .bg-glow { width: 300px; height: 300px; }
     .bg-grid { background-size: 30px 30px; }
-    .hero { padding-bottom: 3.5rem; }
-    .hero-bio { font-size: .82rem; line-height: 1.75; }
 }
 
 @media (max-width: 576px) {
@@ -2197,28 +2195,12 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     color: var(--accent);
 }
 
-/* ── Hero 布局：粒子字占上半屏，经历陈述沉底 ── */
-.hero {
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-end;
-    padding-bottom: 4.5rem;
-}
-.hero-inner {
-    position: relative;
-    z-index: 2;
-    max-width: 860px;
-    text-align: center;
-    padding: 0 var(--space-lg);
-}
-.hero-bio {
-    font-size: .92rem;
-    line-height: 1.85;
-    color: var(--text-secondary);
-    text-shadow: 0 1px 8px rgba(0,0,0,.85), 0 0 18px rgba(0,0,0,.6);
-    margin-bottom: 1.4rem;
-}
+/* ── Hero 布局：整屏粒子轮播（经历短语），CTA 悬浮底部 ── */
 .hero-cta {
+    position: absolute;
+    bottom: 6rem;
+    left: 50%;
+    transform: translateX(-50%);
     z-index: 2;
 }
 
