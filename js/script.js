@@ -15,14 +15,20 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Hero 粒子循环轮播 — 同一批粒子永不消失，形态之间连续变幻 ──
+// 经历与理念关键词也纳入轮播，全部以粒子形态浮现
 const HERO_WORDS = [
   'Vaan',
   'AI Builder',
+  '临床药学五年制',
+  'IVD 仓储十年',
+  '从零到一建部门',
   '数字造物者',
+  '经验不断层',
   '✦ 518 Skills ✦',
+  '业务不停滞',
+  '以少胜多',
+  '合规第一',
   '用代码构建',
-  '28 Projects',
-  '从粒子到现实',
   '◆ 开源 · 分享 ◆',
 ];
 
@@ -111,12 +117,14 @@ function initHeroParticles() {
     }
 
     // ── Step 1: 二分搜索最大能放入安全区的字号 ──
-    // 目标中心：水平居中，垂直稍偏上（给底部按钮留空间但不大）
+    // 目标中心：水平居中，垂直偏上（底部让位给经历陈述区）
+    const isNarrow = W < 768;
     const targetCX = W / 2;
-    const targetCY = H * 0.46;
+    const targetCY = H * (isNarrow ? 0.30 : 0.40);
+    const maxGlyphY = H * (isNarrow ? 0.56 : 0.68);
 
-    // 放宽尺寸限制：宽度 92%、高度 60%（充分利用屏幕空间）
-    let lo = 20, hi = Math.min(W * 0.94, H * 0.68);
+    // 放宽尺寸限制：宽度 92%、高度自适应（充分利用屏幕空间）
+    let lo = 20, hi = Math.min(W * 0.94, H * 0.6);
     let bestFs = lo;
 
     while (lo <= hi) {
@@ -124,10 +132,10 @@ function initHeroParticles() {
       drawAt(mid, targetCX, targetCY);
       const bb = scanBBox();
 
-      // 只保留左右 4%、上下 10% 的边距
+      // 左右 4% 边距；底部以 maxGlyphY 为界，避开经历陈述区
       const fits =
         bb.minX >= W * 0.03 && bb.maxX <= W * 0.97 &&
-        bb.minY >= H * 0.02 && bb.maxY <= H * 0.85;
+        bb.minY >= H * 0.02 && bb.maxY <= maxGlyphY;
 
       if (fits) { bestFs = mid; lo = mid + 1; }
       else { hi = mid - 1; }
