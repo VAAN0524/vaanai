@@ -133,14 +133,20 @@ async function initHeroParticles() {
     }
 
     // 在指定位置绘制文字块（多行垂直居中堆叠）
+    // ±0.7px 五次偏移绘制 → 笔画约加粗 1px：宋体横细竖粗，横画不膨胀会被
+    // step=2 采样网格整行漏掉（表现为横线笔画缺失）
     function drawAt(fontSize, drawX, drawY) {
       octx.clearRect(0, 0, W, H);
-      octx.font = `400 ${fontSize}px ${fonts}`;
+      octx.font = `600 ${fontSize}px ${fonts}`;
       octx.fillStyle = '#fff';
       octx.textAlign = 'center';
       octx.textBaseline = 'middle';
       const y0 = drawY - (lines.length - 1) * fontSize * LH / 2;
-      lines.forEach((ln, i) => octx.fillText(ln, drawX, y0 + i * fontSize * LH));
+      const OFF = [[0, 0], [-0.7, 0], [0.7, 0], [0, -0.7], [0, 0.7]];
+      lines.forEach((ln, i) => {
+        const y = y0 + i * fontSize * LH;
+        for (const [dx, dy] of OFF) octx.fillText(ln, drawX + dx, y + dy);
+      });
     }
 
     // ── Step 1: 二分搜索最大能放入安全区的字号 ──
