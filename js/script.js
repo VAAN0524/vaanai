@@ -23,7 +23,7 @@ const HERO_WORDS = [
   { d: '临床药学五年制科班出身',
     m: ['从临床药学的五年', '到库房管理的十年'] },
   { d: '深耕 IVD 行业十年',
-    m: ['一间库房', '深耕 IVD 十年'] },
+    m: ['深耕 IVD', '行业十年'] },
   { d: '从零到一建部门',
     m: ['从零到一', '把部门建起来'] },
   { d: '积极拥抱 Ai',
@@ -40,8 +40,15 @@ const HERO_WORDS = [
     m: ['药学人的严谨', '× 工程师的浪漫'] },
 ];
 
-function initHeroParticles() {
+async function initHeroParticles() {
   const canvas = document.getElementById('heroCanvas');
+  // 等自定义字体就绪再采样（最多等 1.5s，失败则用系统回退）
+  try {
+    await Promise.race([
+      document.fonts.load('600 100px "Hero Serif"'),
+      new Promise(r => setTimeout(r, 1500)),
+    ]);
+  } catch (e) { /* 字体加载失败 → 回退 PingFang */ }
   if (!canvas) return;
   const ctx = canvas.getContext('2d');
   let W, H;
@@ -90,8 +97,8 @@ function initHeroParticles() {
     const offc = document.createElement('canvas');
     offc.width = W; offc.height = H;
     const octx = offc.getContext('2d');
-    // 常规体（400）：笔画细 → 粒子拼出的字符笔画分明，比 900 粗体易读得多
-    const fonts = '"PingFang SC","Helvetica Neue",sans-serif';
+    // 思源宋体 SemiBold（子集自托管）：书卷气 > PingFang，笔画粗度足够粒子采样
+    const fonts = '"Hero Serif","PingFang SC","Helvetica Neue",sans-serif';
     const LH = 1.4; // 多行行距（相对字号）
 
     // 从 ImageData 中提取非透明像素坐标（限制总数 ≤ MAX_SAMPLE_POINTS）

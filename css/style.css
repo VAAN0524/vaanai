@@ -1,3 +1,12 @@
+/* Hero 粒子字体：思源宋体 SemiBold 子集（~79KB，仅含页面用字） */
+@font-face {
+  font-family: 'Hero Serif';
+  src: url('../fonts/hero-serif.woff2') format('woff2');
+  font-weight: 600;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ========================================
    深色新拟态风格 (Dark Neumorphism)
    Vaan 个人主页 v2.0
