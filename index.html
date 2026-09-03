@@ -42,6 +42,7 @@
 
 <!-- Hero — 整段经历以粒子形态轮播浮现（词库见 script.js HERO_WORDS） -->
 <section id="hero" class="hero">
+    <canvas id="fluidCanvas" aria-hidden="true"></canvas>
     <canvas id="heroCanvas"></canvas>
     <div class="hero-cta">
         <a href="#projects" class="cta-button">探索项目<i data-lucide="arrow-down"></i></a>
@@ -286,5 +287,6 @@
 
 <script defer src="js/bg-particles.js"></script>
 <script defer src="js/script.js"></script>
+    <script type="module" src="js/fluid-hero.js"></script>
 </body>
 </html>

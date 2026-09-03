@@ -1948,10 +1948,18 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     justify-content: center;
     overflow: hidden;
 }
+#fluidCanvas {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.9;
+}
 #heroCanvas {
     position: absolute;
     inset: 0;
     pointer-events: none;
+    z-index: 1;
 }
 .hero-content {
     text-align: center;
