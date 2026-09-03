@@ -2044,46 +2044,101 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     gap: 1.5rem;
 }
 
-/* ═══ 轮廓光系统（borrowed from vgpu nextjs-flare rim.wgsl：光只沿边缘，中心暗）═══
-   --mx/--my 由 JS 写入（鼠标在卡内的位置），--spill 为邻居被照亮的强度(0-1) */
-.rim-glow {
+/* ═══ 玻璃灯板（borrowed from vgpu transmission/glass-fractal：鼠标即光源）═══
+   --lx/--ly 光源在卡内位置%  --lit 照度(0-1, JS 平滑)  --ang 光源方位角deg
+   远：Fresnel 边缘朝光面亮 + 斜向高光带；正上方：.on 开灯，内部通电发光 */
+.glass-panel {
     position: relative;
+    isolation: isolate;
 }
-.rim-glow::before {
+.glass-panel::before {
+    /* 内部光：径向光晕 + 随光源角度旋转的镜面高光带（复合背景） */
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(calc(var(--ang, 0deg) + 100deg),
+            transparent 32%,
+            rgba(170,235,255,.045) 44%,
+            rgba(170,235,255,.10) 50%,
+            rgba(170,235,255,.045) 56%,
+            transparent 68%),
+        radial-gradient(ellipse 90% 100% at var(--lx, 50%) var(--ly, 50%),
+            rgba(0,217,255,.16),
+            rgba(0,217,255,.06) 42%,
+            transparent 72%);
+    opacity: calc(var(--lit, 0) * 0.55);
+    pointer-events: none;
+    z-index: 0;
+}
+.glass-panel.on::before {
+    /* 开灯：光通量拉满，内部通电 */
+    opacity: 1;
+    background:
+        linear-gradient(calc(var(--ang, 0deg) + 100deg),
+            transparent 28%,
+            rgba(190,245,255,.10) 44%,
+            rgba(210,250,255,.16) 50%,
+            rgba(190,245,255,.10) 56%,
+            transparent 72%),
+        radial-gradient(ellipse 85% 95% at var(--lx, 50%) var(--ly, 50%),
+            rgba(0,217,255,.30),
+            rgba(0,217,255,.12) 45%,
+            rgba(108,92,231,.08) 70%,
+            transparent 85%);
+}
+.glass-panel::after {
+    /* Fresnel 环形边缘：朝光面亮（conic from --ang）、背面暗紫 */
     content: '';
     position: absolute;
     inset: -1px;
     border-radius: inherit;
     padding: 1px;
-    background: radial-gradient(circle 220px at var(--mx,50%) var(--my,50%),
-                rgba(0,217,255,.55), rgba(108,92,231,.28) 45%, transparent 70%);
+    background: conic-gradient(from var(--ang, 0deg),
+        rgba(185,240,255,.85),
+        rgba(0,217,255,.22) 22%,
+        rgba(255,255,255,.05) 50%,
+        rgba(108,92,231,.22) 78%,
+        rgba(185,240,255,.85));
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
             mask-composite: exclude;
-    opacity: 0;
-    transition: opacity .35s ease;
+    opacity: calc(0.10 + var(--lit, 0) * 0.9);
     pointer-events: none;
     z-index: 2;
 }
-.rim-glow:hover::before { opacity: 1; }
-/* 邻居照亮（radiance-cascades 光反弹）：hover 源按距离平方衰减外溢 */
-.rim-glow.spilled::before {
-    opacity: var(--spill, 0);
+.glass-panel.on {
+    border-color: rgba(0,217,255,.28);
 }
-/* 掠射角边缘（transmission Fresnel）：顶边亮底边暗 */
-.rim-glow::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    border-radius: inherit;
-    background: linear-gradient(160deg,
-                rgba(160,220,255,.10), rgba(0,217,255,.04) 30%,
-                transparent 55%, rgba(108,92,231,.06));
-    opacity: .5;
-    transition: opacity .35s ease;
+.glass-panel.on h3, .glass-panel.on h4,
+.glass-panel.on .proj-icon, .glass-panel.on .tags span {
+    filter: brightness(1.18) saturate(1.05);
+}
+.glass-panel > * { position: relative; z-index: 1; }
+
+/* ═══ 光标本体：跟随鼠标的可见光晕（黑暗展厅里你举着灯）═══ */
+#light-orb {
+    position: fixed;
+    left: 0; top: 0;
+    width: 380px; height: 380px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle,
+            rgba(140,225,255,.10),
+            rgba(0,217,255,.05) 40%,
+            transparent 68%);
     pointer-events: none;
+    z-index: 5;
+    mix-blend-mode: screen;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity .5s ease;
 }
-.rim-glow:hover::after { opacity: .9; }
+#light-orb.alive { opacity: 1; }
+@media (prefers-reduced-motion: reduce) {
+    #light-orb { display: none; }
+}
 
 
 /* ═══ 滚动进场（IntersectionObserver 驱动，prefers-reduced-motion 关闭）═══ */
@@ -2762,31 +2817,3 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     pointer-events: none;
 }
 
-/* ═══ 数字统计条（black-hole soft-knee 纪律：只有数字发光，其余哑光）═══ */
-.stats-strip {
-    display: flex;
-    justify-content: center;
-    flex-wrap: wrap;
-    gap: clamp(2rem, 6vw, 5rem);
-    padding: 3.2rem 1.5rem 2.6rem;
-}
-.stat { text-align: center; }
-.stat-num {
-    display: block;
-    font-size: clamp(2.2rem, 5vw, 3.2rem);
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-    color: rgba(190,235,255,.95);
-    text-shadow: 0 0 18px rgba(0,217,255,.45);  /* 全条唯一发光体 */
-    line-height: 1.1;
-}
-.stat-label {
-    display: block;
-    margin-top: .45rem;
-    font-size: .82rem;
-    letter-spacing: .12em;
-    color: var(--text-muted, #8b93a7);
-}
-@media (max-width: 480px) {
-    .stats-strip { gap: 1.4rem 2.2rem; }
-}

@@ -36,77 +36,90 @@
     targets.forEach((t) => io.observe(t));
   }
 
-  // ── 2+3. 轮廓光跟随 + 邻居照亮 ──
-  function setupRim() {
+  // ── 玻璃灯板：鼠标即光源（vgpu transmission/glass-fractal 译文）──
+  // 每块玻璃：--lx/--ly 光源位置%、--ang 朝光方位角、--lit 照度（rAF 平滑）
+  // 鼠标进入玻璃正面 = .on 开灯（内部通电）；离开 = 照度随距离平方衰减
+  function setupGlassLight() {
     const SELECTOR = '.proj-card, .skill-tile, .skill-card';
-    document.querySelectorAll(SELECTOR).forEach((el) => el.classList.add('rim-glow'));
+    const FALL_R = 560;        // 光照半径（px）
+    const cards = [...document.querySelectorAll(SELECTOR)].map((el) => ({
+      el, lit: 0, lx: 50, ly: 50, ang: 0,
+    }));
+    cards.forEach((c) => c.el.classList.add('glass-panel'));
 
+    // 光标本体（可见的鼠标光晕）
+    const orb = document.createElement('div');
+    orb.id = 'light-orb';
+    document.body.appendChild(orb);
+    let orbX = -999, orbY = -999, orbTX = -999, orbTY = -999;
+
+    let mx = -9999, my = -9999, lastMove = 0, running = true;
     document.addEventListener('pointermove', (e) => {
-      const hovered = e.target.closest?.(SELECTOR);
-      if (!hovered) return;
-      const r = hovered.getBoundingClientRect();
-      hovered.style.setProperty('--mx', ((e.clientX - r.left) / r.width * 100).toFixed(1) + '%');
-      hovered.style.setProperty('--my', ((e.clientY - r.top) / r.height * 100).toFixed(1) + '%');
-
-      // 光反弹：同一 grid 内的兄弟卡片按距离²衰减照亮（限制在 600px 内）
-      const grid = hovered.parentElement;
-      if (!grid) return;
-      grid.querySelectorAll(SELECTOR).forEach((sib) => {
-        if (sib === hovered) return;
-        const sr = sib.getBoundingClientRect();
-        const dx = (sr.left + sr.width / 2) - (r.left + r.width / 2);
-        const dy = (sr.top + sr.height / 2) - (r.top + r.height / 2);
-        const d = Math.hypot(dx, dy);
-        if (d > 600) { sib.classList.remove('spilled'); return; }
-        const spill = 0.45 / (1 + (d / 260) * (d / 260)); // 1/(1+d²·falloff)，rim.wgsl 同款衰减
-        if (spill > 0.04) {
-          sib.style.setProperty('--spill', spill.toFixed(3));
-          sib.classList.add('spilled');
-        } else sib.classList.remove('spilled');
-      });
+      mx = e.clientX; my = e.clientY; lastMove = performance.now();
+      orbTX = mx; orbTY = my;
+      orb.classList.add('alive');
     }, { passive: true });
 
+    // 光标停留在玻璃上时开灯
+    document.addEventListener('pointerover', (e) => {
+      const card = e.target.closest?.(SELECTOR);
+      if (card) card.classList.add('on');
+    }, { passive: true });
     document.addEventListener('pointerout', (e) => {
       const card = e.target.closest?.(SELECTOR);
-      if (!card) return;
-      // 离开卡片时清掉它造成的溢光
-      card.parentElement?.querySelectorAll('.spilled').forEach((s) => s.classList.remove('spilled'));
+      if (card && !card.contains(e.relatedTarget)) card.classList.remove('on');
     }, { passive: true });
-  }
 
-  // ── 4. 统计数字滚动（count-up，进场触发一次）──
-  function setupCountUp() {
-    const strip = document.getElementById('stats');
-    if (!strip || reduce || !('IntersectionObserver' in window)) {
-      strip?.querySelectorAll('.stat-num').forEach((n) => { n.textContent = n.dataset.count; });
-      return;
-    }
-    const run = () => {
-      strip.querySelectorAll('.stat-num').forEach((el) => {
-        const target = parseInt(el.dataset.count, 10) || 0;
-        const DUR = 1100, T0 = performance.now();
-        const tick = (t) => {
-          const p = Math.min(1, (t - T0) / DUR);
-          const eased = 1 - Math.pow(1 - p, 3);
-          el.textContent = Math.round(target * eased);
-          if (p < 1) requestAnimationFrame(tick);
-        };
-        requestAnimationFrame(tick);
-      });
+    window.addEventListener('vaanai:pause-animations', () => { running = false; orb.classList.remove('alive'); });
+    window.addEventListener('vaanai:resume-animations', () => { running = true; });
+
+    const inGlassZone = (el) => {
+      // 光源只在玻璃区（projects/skills/capability）显形，不与 hero 流体抢戏
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && r.bottom > 0 && r.top < innerHeight;
     };
-    const io = new IntersectionObserver((es) => {
-      if (es[0].isIntersecting) { run(); io.disconnect(); }
-    }, { threshold: 0.4 });
-    io.observe(strip);
+
+    function frame() {
+      requestAnimationFrame(frame);
+      if (!running || document.hidden) return;
+      const idle = performance.now() - lastMove > 2600;
+      orbX += (orbTX - orbX) * 0.12;
+      orbY += (orbTY - orbY) * 0.12;
+      orb.style.transform = `translate(${orbX - 190}px, ${orbY - 190}px)`;
+      if (idle) orb.classList.remove('alive');
+
+      let anyVisible = false;
+      for (const c of cards) {
+        const r = c.el.getBoundingClientRect();
+        if (r.width === 0 || r.bottom < -100 || r.top > innerHeight + 100) continue;
+        anyVisible = true;
+        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+        const dx = mx - cx, dy = my - cy;
+        const d = Math.hypot(dx, dy);
+        // 照度：1/(1+(d/r)²) 与 rim.wgsl 同款衰减；空闲时熄灭
+        const target = idle ? 0 : Math.min(1, 1 / (1 + (d / 300) * (d / 300)));
+        c.lit += (target - c.lit) * (target > c.lit ? 0.22 : 0.07); // 亮得快、暗得慢
+        // 光源方位角（0deg=正上，顺时针；conic from 同基准）
+        const ang = Math.atan2(dx, -dy) * 180 / Math.PI;
+        // 光源在卡内的位置%（钳到 -40~140 允许光在卡外仍投影）
+        const lx = Math.max(-40, Math.min(140, (mx - r.left) / r.width * 100));
+        const ly = Math.max(-40, Math.min(140, (my - r.top) / r.height * 100));
+        c.lx += (lx - c.lx) * 0.2; c.ly += (ly - c.ly) * 0.2; c.ang += (ang - c.ang) * 0.15;
+        c.el.style.setProperty('--lit', c.lit.toFixed(3));
+        c.el.style.setProperty('--lx', c.lx.toFixed(1) + '%');
+        c.el.style.setProperty('--ly', c.ly.toFixed(1) + '%');
+        c.el.style.setProperty('--ang', c.ang.toFixed(1) + 'deg');
+      }
+      // 光标不在玻璃区时收起光标光环
+      if (!idle && !cards.some((c) => inGlassZone(c.el))) orb.classList.remove('alive');
+    }
+    requestAnimationFrame(frame);
   }
 
-  const boot = () => { setupReveal(); setupRim(); setupCountUp(); };
+  const boot = () => { setupReveal(); setupGlassLight(); };
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);
   } else boot();
 
   // 暂停时可清场（暂停页面动画时也让溢光熄灭）
-  window.addEventListener('vaanai:pause-animations', () => {
-    document.querySelectorAll('.spilled').forEach((s) => s.classList.remove('spilled'));
-  });
 })();
