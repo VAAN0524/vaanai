@@ -21,7 +21,7 @@ let config = {
     SIM_RESOLUTION: 128,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
-    DENSITY_DISSIPATION: 0.55,
+    DENSITY_DISSIPATION: 1.1,
     VELOCITY_DISSIPATION: 0.2,
     PRESSURE: 0.8,
     PRESSURE_ITERATIONS: 20,
@@ -37,12 +37,12 @@ let config = {
     BLOOM: true,
     BLOOM_ITERATIONS: 8,
     BLOOM_RESOLUTION: 256,
-    BLOOM_INTENSITY: 0.8,
+    BLOOM_INTENSITY: 0.35,
     BLOOM_THRESHOLD: 0.6,
     BLOOM_SOFT_KNEE: 0.7,
     SUNRAYS: true,
     SUNRAYS_RESOLUTION: 196,
-    SUNRAYS_WEIGHT: 1.0,
+    SUNRAYS_WEIGHT: 0.4,
 }
 
 function pointerPrototype () {
@@ -1073,10 +1073,13 @@ function update () {
     if (fluidVisible && !document.hidden && !fluidPaused) {
         if (resizeCanvas())
             initFramebuffers();
-        // 空闲注入：每 3.5s 一发轻染料，无操作时也保持流动
-        if (Date.now() - lastIdleSplat > 3500) {
+        // 空闲注入：每 4.5s 一发温和染料（直接 splat，避开 multipleSplats 的 10 倍增亮）
+        if (Date.now() - lastIdleSplat > 4500) {
             lastIdleSplat = Date.now();
-            splatStack.push(1);
+            const c = generateColor();
+            c.r *= 3.0; c.g *= 3.0; c.b *= 3.0;
+            splat(Math.random() * 0.6 + 0.2, Math.random() * 0.6 + 0.2,
+                  600 * (Math.random() - 0.5), 600 * (Math.random() - 0.5), c);
         }
         updateColors(dt);
         applyInputs();
@@ -1453,9 +1456,9 @@ function generateColor () {
     // 品牌色系：青(0.52) / 紫(0.72) / 粉(0.92) 三区间随机色相
     const hues = [0.50 + Math.random() * 0.06, 0.68 + Math.random() * 0.08, 0.88 + Math.random() * 0.06];
     const c = HSVtoRGB(hues[Math.floor(Math.random() * hues.length)], 1.0, 1.0);
-    c.r *= 0.15;
-    c.g *= 0.15;
-    c.b *= 0.15;
+    c.r *= 0.09;
+    c.g *= 0.09;
+    c.b *= 0.09;
     return c;
 }
 
