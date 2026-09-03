@@ -109,6 +109,7 @@
         c.el.style.setProperty('--lx', c.lx.toFixed(1) + '%');
         c.el.style.setProperty('--ly', c.ly.toFixed(1) + '%');
         c.el.style.setProperty('--ang', c.ang.toFixed(1) + 'deg');
+        c.el.style.setProperty('--sheen', (c.ang + 100).toFixed(1) + 'deg');
       }
       // 光标不在玻璃区时收起光标光环
       if (!idle && !cards.some((c) => inGlassZone(c.el))) orb.classList.remove('alive');

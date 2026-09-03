@@ -2058,7 +2058,7 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     inset: 0;
     border-radius: inherit;
     background:
-        linear-gradient(calc(var(--ang, 0deg) + 100deg),
+        linear-gradient(var(--sheen, 100deg),
             transparent 32%,
             rgba(170,235,255,.045) 44%,
             rgba(170,235,255,.10) 50%,
@@ -2070,13 +2070,13 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
             transparent 72%);
     opacity: calc(var(--lit, 0) * 0.55);
     pointer-events: none;
-    z-index: 0;
+    z-index: 2;
 }
 .glass-panel.on::before {
     /* 开灯：光通量拉满，内部通电 */
     opacity: 1;
     background:
-        linear-gradient(calc(var(--ang, 0deg) + 100deg),
+        linear-gradient(var(--sheen, 100deg),
             transparent 28%,
             rgba(190,245,255,.10) 44%,
             rgba(210,250,255,.16) 50%,
@@ -2106,7 +2106,7 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
             mask-composite: exclude;
     opacity: calc(0.10 + var(--lit, 0) * 0.9);
     pointer-events: none;
-    z-index: 2;
+    z-index: 3;
 }
 .glass-panel.on {
     border-color: rgba(0,217,255,.28);
@@ -2115,7 +2115,9 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
 .glass-panel.on .proj-icon, .glass-panel.on .tags span {
     filter: brightness(1.18) saturate(1.05);
 }
-.glass-panel > * { position: relative; z-index: 1; }
+.glass-panel.on {
+    box-shadow: 0 0 70px -14px rgba(0,217,255,.28), 0 12px 40px rgba(0,0,0,.45);
+}
 
 /* ═══ 光标本体：跟随鼠标的可见光晕（黑暗展厅里你举着灯）═══ */
 #light-orb {
