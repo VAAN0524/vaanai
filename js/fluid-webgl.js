@@ -21,7 +21,7 @@ let config = {
     SIM_RESOLUTION: 128,
     DYE_RESOLUTION: 1024,
     CAPTURE_RESOLUTION: 512,
-    DENSITY_DISSIPATION: 1.1,
+    DENSITY_DISSIPATION: 0.85,
     VELOCITY_DISSIPATION: 0.2,
     PRESSURE: 0.8,
     PRESSURE_ITERATIONS: 20,
@@ -37,7 +37,7 @@ let config = {
     BLOOM: true,
     BLOOM_ITERATIONS: 8,
     BLOOM_RESOLUTION: 256,
-    BLOOM_INTENSITY: 0.35,
+    BLOOM_INTENSITY: 0.5,
     BLOOM_THRESHOLD: 0.6,
     BLOOM_SOFT_KNEE: 0.7,
     SUNRAYS: true,
@@ -1456,9 +1456,9 @@ function generateColor () {
     // 品牌色系：青(0.52) / 紫(0.72) / 粉(0.92) 三区间随机色相
     const hues = [0.50 + Math.random() * 0.06, 0.68 + Math.random() * 0.08, 0.88 + Math.random() * 0.06];
     const c = HSVtoRGB(hues[Math.floor(Math.random() * hues.length)], 1.0, 1.0);
-    c.r *= 0.09;
-    c.g *= 0.09;
-    c.b *= 0.09;
+    c.r *= 0.12;
+    c.g *= 0.12;
+    c.b *= 0.12;
     return c;
 }
 
