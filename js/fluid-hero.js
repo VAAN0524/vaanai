@@ -256,6 +256,7 @@ const CELLS = GRID[0] * GRID[1];
 const DYE_CELLS = DYE[0] * DYE[1];
 const FIXED_STEP = 1 / 60;
 const clamp01 = (v) => Math.max(0, Math.min(1, v));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 
 export async function createFluidLayer(heroEl, canvas) {
   if (!navigator.gpu) throw new Error("no webgpu");
@@ -263,11 +264,24 @@ export async function createFluidLayer(heroEl, canvas) {
   const adapter = await navigator.gpu.requestAdapter();
   if (!adapter) throw new Error("no adapter");
   const device = await adapter.requestDevice();
-  device.addEventListener?.("uncapturederror", (e) => console.warn("[fluid]", e.error?.message));
+  device.addEventListener?.("uncapturederror", (e) => {
+    const msg = e.error?.message || "";
+    console.warn("[fluid] GPU 未捕获错误:", msg);
+    // WebKit bug（Safari 26.6）：canvas context 报 device mismatch 后渲染不再上屏，
+    // 检测到即自动降级移除画布，避免黑屏盖住 hero 背景
+    if (/device mismatch/i.test(msg)) {
+      running = false;
+      canvas.remove();
+    }
+  });
+  device.lost?.then?.((info) => { window.__fluidGPULost = info.reason || "unknown"; });
 
+  const dpr0 = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.max(2, Math.floor(heroEl.clientWidth * dpr0));
+  canvas.height = Math.max(2, Math.floor(heroEl.clientHeight * dpr0));
   const ctx = canvas.getContext("webgpu");
   const format = navigator.gpu.getPreferredCanvasFormat();
-  ctx.configure({ device, format, alphaMode: "premultiplied" });
+  ctx.configure({ device, format, alphaMode: "opaque" });  // 唯一一次 configure（WebKit premultiplied 有 device mismatch 问题）
 
   // ── storage buffers ──
   const mk = (bytes) => device.createBuffer({ size: bytes, usage: GPUBufferUsage.STORAGE });
@@ -284,22 +298,98 @@ export async function createFluidLayer(heroEl, canvas) {
   const bufParams = device.createBuffer({ size: 16, usage: U });
   const bufDisplay = device.createBuffer({ size: 16, usage: U });
 
+  function writeSafe(buffer, typedArr, label) {
+    for (let i = 0; i < typedArr.length; i++) {
+      if (Number.isNaN(typedArr[i])) {
+        console.error(`[fluid] ${label}[${i}] 是 NaN！已置 0`);
+        typedArr[i] = 0;
+      }
+    }
+    device.queue.writeBuffer(buffer, 0, typedArr);
+  }
   const gridU32 = new Uint32Array([GRID[0], GRID[1], DYE[0], DYE[1]]);
-  device.queue.writeBuffer(bufGrid, 0, gridU32);
-  device.queue.writeBuffer(bufDisplay, 0, new Float32Array([canvas.width || 8, canvas.height || 8, 0, 0]));
+  writeSafe(bufGrid, gridU32, "grid");
+  writeSafe(bufDisplay, new Float32Array([canvas.width || 8, canvas.height || 8, 0, 0]), "display-init");
 
   // ── pipelines ──
-  const computePipe = (code) => device.createComputePipeline({ layout: "auto", compute: { module: device.createShaderModule({ code }), entryPoint: "main" } });
-  const pAdvV = computePipe(SHADERS.advectVelocity);
-  const pCurl = computePipe(SHADERS.curl);
-  const pVort = computePipe(SHADERS.vorticity);
-  const pDiv = computePipe(SHADERS.divergence);
-  const pPres = computePipe(SHADERS.pressure);
-  const pProj = computePipe(SHADERS.project);
-  const pAdvD = computePipe(SHADERS.advectDye);
+  const BGL = {
+    grid: device.createBindGroupLayout({ entries: [{ binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } }] }),
+    gridInput: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+    ] }),
+    gridParams: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+    ] }),
+    // 通用：1 uniform + 1 read + N read_write 组合按 pass 显式声明
+    velAdv: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    velCurl: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    vort: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    div: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    pres: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    proj: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+    dyeAdv: device.createBindGroupLayout({ entries: [
+      { binding: 0, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.COMPUTE, buffer: { type: "uniform" } },
+      { binding: 2, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 3, visibility: GPUShaderStage.COMPUTE, buffer: { type: "read-only-storage" } },
+      { binding: 4, visibility: GPUShaderStage.COMPUTE, buffer: { type: "storage" } },
+    ] }),
+  };
+  const layoutOf = (name) => ({
+    advectVelocity: BGL.velAdv, curl: BGL.velCurl, vorticity: BGL.vort,
+    divergence: BGL.div, pressure: BGL.pres, project: BGL.proj, advectDye: BGL.dyeAdv,
+  }[name]);
+  const computePipe = (name, code) => device.createComputePipeline({
+    layout: device.createPipelineLayout({ bindGroupLayouts: [layoutOf(name)] }),
+    compute: { module: device.createShaderModule({ code }), entryPoint: "main" },
+  });
+  const pAdvV = computePipe("advectVelocity", SHADERS.advectVelocity);
+  const pCurl = computePipe("curl", SHADERS.curl);
+  const pVort = computePipe("vorticity", SHADERS.vorticity);
+  const pDiv = computePipe("divergence", SHADERS.divergence);
+  const pPres = computePipe("pressure", SHADERS.pressure);
+  const pProj = computePipe("project", SHADERS.project);
+  const pAdvD = computePipe("advectDye", SHADERS.advectDye);
   const renderModule = device.createShaderModule({ code: SHADERS.display });
+  const displayBGL = device.createBindGroupLayout({
+    entries: [
+      { binding: 0, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "uniform" } },
+      { binding: 1, visibility: GPUShaderStage.FRAGMENT, buffer: { type: "read-only-storage" } },
+    ],
+  });
   const pDisplay = device.createRenderPipeline({
-    layout: "auto",
+    layout: device.createPipelineLayout({ bindGroupLayouts: [displayBGL] }),
     vertex: { module: renderModule, entryPoint: "vertex_main" },
     fragment: { module: renderModule, entryPoint: "fragment_main", targets: [{ format }] },
     primitive: { topology: "triangle-list" },
@@ -319,6 +409,9 @@ export async function createFluidLayer(heroEl, canvas) {
   let lastInputStep = -1000;
 
   function writeInputUniform(step) {
+    for (let i = 0; i < 20; i++) {
+      if (Number.isNaN(sF32[i])) { console.error(`[fluid] Input.uniform f32[${i}] 是 NaN（step=${step}）`); sF32[i] = 0; }
+    }
     sU32[0] = step;
     sF32[1] = input.active ? 1 : 0;
     sF32[2] = input.from[0]; sF32[3] = input.from[1];
@@ -328,7 +421,7 @@ export async function createFluidLayer(heroEl, canvas) {
     const [a, b] = idleEmitters(step);
     sF32[12] = a[0]; sF32[13] = a[1]; sF32[14] = idleStrength(step); sF32[15] = 0.006;
     sF32[16] = b[0]; sF32[17] = b[1]; sF32[18] = idleStrength(step) * 0.92; sF32[19] = 0.0055;
-    device.queue.writeBuffer(bufInput, 0, scratch);
+    writeSafe(bufInput, scratch, "input");
   }
   function idleEmitters(step) {
     const t = step / 60;
@@ -359,7 +452,7 @@ export async function createFluidLayer(heroEl, canvas) {
     velIdx = 1 - velIdx;
     disp(pDiv, [B(0, bufGrid), B(1, vel[velIdx]), B(2, div)], 16, 9);
     for (let i = 0; i < 3; i++) {
-      device.queue.writeBuffer(bufParams, 0, new Float32Array([i === 0 ? 0.8 : 1]));
+      writeSafe(bufParams, new Float32Array([i === 0 ? 0.8 : 1]), "params");
       disp(pPres, [B(0, bufGrid), B(1, bufParams), B(2, pres[presIdx]), B(3, div), B(4, pres[1 - presIdx])], 16, 9);
       presIdx = 1 - presIdx;
     }
@@ -377,9 +470,9 @@ export async function createFluidLayer(heroEl, canvas) {
     const h = Math.max(2, Math.floor(heroEl.clientHeight * dpr));
     if (canvas.width !== w || canvas.height !== h) {
       canvas.width = w; canvas.height = h;
-      ctx.configure({ device, format, alphaMode: "premultiplied" });
+      // 注意：canvas 尺寸变化无需重新 configure（WebKit 二次 configure 会 device mismatch）
     }
-    device.queue.writeBuffer(bufDisplay, 0, new Float32Array([canvas.width, canvas.height, 0, 0]));
+    writeSafe(bufDisplay, new Float32Array([canvas.width, canvas.height, 0, 0]), "display-resize");
   }
   resize();
   window.addEventListener("resize", resize);
@@ -417,9 +510,18 @@ export async function createFluidLayer(heroEl, canvas) {
 
   let accumulator = 0, previous = performance.now(), stepCount = 0;
   function tick(now) {
-    if (!running) { previous = now; requestAnimationFrame(tick); return; }
+    try { tickInner(now); } catch (err) {
+      window.__fluidTickError = (err?.message || String(err)) + " | canvas " + canvas.width + "x" + canvas.height;
+    }
+    requestAnimationFrame(tick);
+  }
+  function tickInner(now) {
+    if (!running) { previous = now; return; }
     const elapsed = Math.min((now - previous) / 1000, 1 / 30);
     previous = now;
+    window.__fluidFrames = (window.__fluidFrames || 0) + 1;
+    window.__fluidSize = canvas.width + "x" + canvas.height;
+    window.__fluidVisible = visible;
     if (visible && !document.hidden) {
       accumulator += elapsed;
       let steps = 0;
@@ -435,6 +537,7 @@ export async function createFluidLayer(heroEl, canvas) {
         stepFluid(stepCount, command);
       }
       cpass.end();
+      window.__fluidSteps = (window.__fluidSteps || 0) + steps;
       if (steps > 0) {
         const displayBG = bg(pDisplay, [B(bufDisplay), B(dye[1 - dyeIdx])]);
         const pass = encoder.beginRenderPass({
@@ -446,13 +549,12 @@ export async function createFluidLayer(heroEl, canvas) {
         });
         pass.setPipeline(pDisplay);
         pass.setBindGroup(0, displayBG);
-        pass.draw(3);
+        pass.draw(3, 1, 0, 0);
         pass.end();
       }
       device.queue.submit([encoder.finish()]);
       input.active = false;   // pointermove 事件驱动，无事件即停
     }
-    requestAnimationFrame(tick);
   }
   requestAnimationFrame(tick);
 
