@@ -2819,3 +2819,61 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     pointer-events: none;
 }
 
+
+/* ═══ 项目卡玻璃层覆盖（.proj-card 自带 ::before/::after 角标且定义靠后，需更高优先级；overflow:hidden 下环用 inset:0）═══ */
+.proj-card.glass-panel::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background:
+        linear-gradient(var(--sheen, 100deg),
+            transparent 32%,
+            rgba(170,235,255,.045) 44%,
+            rgba(170,235,255,.10) 50%,
+            rgba(170,235,255,.045) 56%,
+            transparent 68%),
+        radial-gradient(ellipse 90% 100% at var(--lx, 50%) var(--ly, 50%),
+            rgba(0,217,255,.16),
+            rgba(0,217,255,.06) 42%,
+            transparent 72%);
+    opacity: calc(var(--lit, 0) * 0.55);
+    pointer-events: none;
+    z-index: 2;
+    transition: none;
+}
+.proj-card.glass-panel.on::before {
+    opacity: 1;
+    background:
+        linear-gradient(var(--sheen, 100deg),
+            transparent 28%,
+            rgba(190,245,255,.10) 44%,
+            rgba(210,250,255,.16) 50%,
+            rgba(190,245,255,.10) 56%,
+            transparent 72%),
+        radial-gradient(ellipse 85% 95% at var(--lx, 50%) var(--ly, 50%),
+            rgba(0,217,255,.30),
+            rgba(0,217,255,.12) 45%,
+            rgba(108,92,231,.08) 70%,
+            transparent 85%);
+}
+.proj-card.glass-panel::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: conic-gradient(from var(--ang, 0deg),
+        rgba(185,240,255,.85),
+        rgba(0,217,255,.22) 22%,
+        rgba(255,255,255,.05) 50%,
+        rgba(108,92,231,.22) 78%,
+        rgba(185,240,255,.85));
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+            mask-composite: exclude;
+    opacity: calc(0.10 + var(--lit, 0) * 0.9);
+    pointer-events: none;
+    z-index: 3;
+    transition: none;
+}
