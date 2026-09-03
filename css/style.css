@@ -1951,6 +1951,8 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
 #fluidCanvas {
     position: absolute;
     inset: 0;
+    width: 100%;   /* canvas 是替换元素，inset:0 不会拉伸，必须显式尺寸 */
+    height: 100%;
     pointer-events: none;
     z-index: 0;
     opacity: 0.9;

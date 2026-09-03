@@ -113,7 +113,6 @@ function getWebGLContext (canvas) {
         formatR = getSupportedFormat(gl, gl.RGBA, gl.RGBA, halfFloatTexType);
     }
 
-    ga('send', 'event', isWebGL2 ? 'webgl2' : 'webgl', formatRGBA == null ? 'not supported' : 'supported');
 
     return {
         gl,
@@ -1058,8 +1057,6 @@ multipleSplats(6);
 
 let lastUpdateTime = Date.now();
 let colorUpdateTimer = 0.0;
-update();
-
 let fluidPaused = false;
 let fluidVisible = true;
 let lastIdleSplat = Date.now();
@@ -1068,6 +1065,8 @@ window.addEventListener('vaanai:resume-animations', () => { fluidPaused = false;
 if ('IntersectionObserver' in window) {
     new IntersectionObserver(entries => { fluidVisible = entries[0].isIntersecting; }).observe(heroEl);
 }
+
+update();
 
 function update () {
     const dt = calcDeltaTime();
