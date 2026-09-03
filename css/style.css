@@ -2842,19 +2842,38 @@ body > *:not(#bgCanvas):not(.bg-grid):not(.bg-glow) {
     z-index: 2;
     transition: none;
 }
+.proj-card.glass-panel.on {
+    /* 开灯变色：底色通电 */
+    background-color: rgba(0,150,220,.13);
+    border-color: rgba(0,217,255,.4);
+    box-shadow:
+        0 0 0 1px rgba(0,217,255,.18),
+        0 0 60px -12px rgba(0,217,255,.45),
+        0 14px 44px rgba(0,0,0,.5);
+}
+.proj-card.glass-panel.on .proj-video-wrap::after {
+    /* 视频缩略图上也罩一层通电光（否则卡片中央被视频遮住看不见） */
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 10px;
+    background: radial-gradient(ellipse 90% 90% at var(--lx, 50%) var(--ly, 50%),
+        rgba(0,217,255,.34), rgba(0,217,255,.14) 50%, transparent 80%);
+    pointer-events: none;
+}
 .proj-card.glass-panel.on::before {
     opacity: 1;
     background:
         linear-gradient(var(--sheen, 100deg),
-            transparent 28%,
-            rgba(190,245,255,.10) 44%,
-            rgba(210,250,255,.16) 50%,
-            rgba(190,245,255,.10) 56%,
-            transparent 72%),
-        radial-gradient(ellipse 85% 95% at var(--lx, 50%) var(--ly, 50%),
-            rgba(0,217,255,.30),
-            rgba(0,217,255,.12) 45%,
-            rgba(108,92,231,.08) 70%,
+            transparent 24%,
+            rgba(190,245,255,.16) 42%,
+            rgba(220,252,255,.26) 50%,
+            rgba(190,245,255,.16) 58%,
+            transparent 76%),
+        radial-gradient(ellipse 90% 100% at var(--lx, 50%) var(--ly, 50%),
+            rgba(0,217,255,.42),
+            rgba(0,217,255,.20) 45%,
+            rgba(108,92,231,.12) 70%,
             transparent 85%);
 }
 .proj-card.glass-panel::after {
