@@ -8,22 +8,29 @@
 
   // ── 1. 进场动画：卡片/瓦片错峰浮现 ──
   function setupReveal() {
+    // 差异化进场：项目=上浮缩放 / 技能瓦片=3D 翻入 / 能力卡=左右交替滑入 / 联系=弹性缩放
     const groups = [
-      { parent: '.project-grid', items: '.proj-card' },
-      { parent: '.skill-tiles', items: '.skill-tile' },
-      { parent: '.skill-grid', items: '.skill-card' },
-      { parent: '.contact-row', items: '.contact-pill' },
+      { parent: '.project-grid', items: '.proj-card', variant: 'reveal-up' },
+      { parent: '.skill-tiles', items: '.skill-tile', variant: 'reveal-flip' },
+      { parent: '.skill-grid', items: '.skill-card', variant: 'reveal-side' },
+      { parent: '.contact-row', items: '.contact-pill', variant: 'reveal-pop' },
     ];
     const targets = [];
     for (const g of groups) {
       document.querySelectorAll(g.parent).forEach((grid) => {
         grid.querySelectorAll(g.items).forEach((el, i) => {
-          el.classList.add('reveal');
+          el.classList.add('reveal', g.variant);
+          if (g.variant === 'reveal-side') el.classList.add(i % 2 ? 'from-right' : 'from-left');
           el.style.setProperty('--reveal-delay', Math.min(i * 70, 420) + 'ms');
           targets.push(el);
         });
       });
     }
+    // section 标题入场：幻影错位滑入重合 + 底线拉伸
+    document.querySelectorAll('.section-title').forEach((t) => {
+      t.classList.add('title-reveal');
+      targets.push(t);
+    });
     if (reduce || !('IntersectionObserver' in window)) {
       targets.forEach((t) => t.classList.add('in'));
       return;
