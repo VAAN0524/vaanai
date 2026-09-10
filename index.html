@@ -21,7 +21,6 @@
 <canvas id="bgCanvas" aria-hidden="true"></canvas>
 
 <!-- 背景层 -->
-<div class="bg-grid"></div>
 <div class="bg-glow bg-glow-1"></div>
 <div class="bg-glow bg-glow-2"></div>
 <div class="ripple-container" id="rippleContainer"></div>
@@ -277,10 +276,10 @@
 </section>
 
 <!-- 项目实景演示模态框 -->
-<div class="video-modal" id="videoModal">
+<div class="video-modal" id="videoModal" role="dialog" aria-modal="true" aria-label="项目演示视频">
     <div class="video-modal-backdrop" onclick="closeVideoModal()"></div>
     <div class="video-modal-body">
-        <button class="video-modal-close" onclick="closeVideoModal()">✕</button>
+        <button class="video-modal-close" onclick="closeVideoModal()" aria-label="关闭演示">✕</button>
         <h3 id="videoModalTitle"></h3>
         <div class="video-modal-player">
             <video id="videoModalPlayer" controls autoplay loop></video>
