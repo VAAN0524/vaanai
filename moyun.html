@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墨韵 · 实时水墨</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#f4efe6;
+    font-family:"Songti SC","STSong",-apple-system,serif}
+  canvas{display:block;cursor:crosshair}
+  #tabs{position:fixed;top:0;left:0;right:0;z-index:98;display:flex;gap:4px;
+    justify-content:center;align-items:center;padding:10px 12px 8px;
+    background:linear-gradient(rgba(90,74,48,.2),rgba(90,74,48,0));pointer-events:none}
+  #tabs .tab{pointer-events:auto;text-decoration:none;font-size:12.5px;
+    padding:7px 15px;border-radius:999px;color:rgba(60,50,36,.75);
+    background:rgba(244,239,230,.72);border:1px solid rgba(120,100,64,.25);white-space:nowrap}
+  #tabs a.tab:hover{color:#3a2a1a;border-color:rgba(120,100,64,.5)}
+  #tabs .tab.act{color:#f4efe6;background:#5a4a2a;border-color:#5a4a2a;font-weight:600}
+  #title{position:fixed;right:5vw;top:10vh;z-index:10;pointer-events:none;
+    writing-mode:vertical-rl;display:flex;gap:16px}
+  #title .t{font-size:clamp(1.6rem,3.5vw,2.4rem);font-weight:700;color:#2a2a2a;
+    letter-spacing:.3em}
+  #title .seal{width:42px;height:42px;border:2.5px solid #b3352c;border-radius:5px;
+    color:#b3352c;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;transform:rotate(4deg);align-self:flex-start;margin-top:8px}
+  #tools{position:fixed;left:20px;top:50%;transform:translateY(-50%);z-index:10;
+    display:flex;flex-direction:column;gap:10px}
+  #tools button{width:44px;height:44px;border-radius:50%;border:1.5px solid rgba(60,50,36,.3);
+    font-size:18px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center}
+  #tools button:hover{border-color:#5a4a2a;background:rgba(90,74,42,.08)}
+  #tools button.act{border-color:#5a4a2a;background:rgba(90,74,42,.15)}
+</style>
+</head>
+<body>
+<nav id="tabs">
+  <a class="tab" href="index.html">⚡ 实验室</a>
+  <a class="tab" href="bianjing.html">🏯 乐高汴京</a>
+  <a class="tab" href="shanhe.html">🏔 云梦山河</a>
+  <a class="tab act" href="moyun.html">🖌 墨韵</a>
+  <a class="tab" href="contact.html">📮 联系</a>
+</nav>
+<div id="title"><div class="t">墨 韵</div><div class="seal">墨</div></div>
+<div id="tools">
+  <button class="act" data-tool="brush" title="毛笔">✒️</button>
+  <button data-tool="drop" title="墨滴">💧</button>
+  <button data-tool="wipe" title="擦除">🧹</button>
+</div>
+<canvas id="cv"></canvas>
+<script>
+/* ═══ 墨韵 · 实时水墨 Canvas ═══
+   毛笔笔触（速度控浓淡）· 墨滴扩散 · 擦除 */
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W = 0, H = 0, DPR = Math.min(devicePixelRatio || 1, 2);
+function resize(){
+  const old = cv.width > 0 ? ctx.getImageData(0, 0, cv.width, cv.height) : null;
+  W = cv.width = innerWidth * DPR; H = cv.height = innerHeight * DPR;
+  cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  if (old) ctx.putImageData(old, 0, 0);
+  paper();
+}
+function paper(){
+  ctx.fillStyle = '#f4efe6'; ctx.fillRect(0, 0, innerWidth, innerHeight);
+  /* 纸纹：随机浅色短线 */
+  ctx.strokeStyle = 'rgba(180,165,140,0.06)'; ctx.lineWidth = 0.5;
+  for (let i = 0; i < 200; i++){
+    const x = Math.random()*innerWidth, y = Math.random()*innerHeight;
+    ctx.beginPath(); ctx.moveTo(x, y);
+    ctx.lineTo(x + (Math.random()-0.5)*30, y + (Math.random()-0.5)*30); ctx.stroke();
+  }
+}
+resize(); addEventListener('resize', resize);
+
+/* 工具状态 */
+let tool = 'brush';
+let drawing = false;
+let lastX = 0, lastY = 0, lastSpeed = 0;
+document.querySelectorAll('#tools button').forEach(b => {
+  b.addEventListener('click', () => {
+    document.querySelectorAll('#tools button').forEach(x => x.classList.remove('act'));
+    b.classList.add('act');
+    tool = b.dataset.tool;
+  });
+});
+
+/* 毛笔笔触 */
+function drawBrush(x0, y0, x1, y1, speed){
+  const ink = Math.max(0.15, Math.min(0.9, 1 - speed / 12));
+  const w = Math.max(1, Math.min(14, 14 - speed * 0.8));
+  ctx.strokeStyle = `rgba(30,28,26,${ink})`;
+  ctx.lineWidth = w; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  /* 飞白：速度高时叠加细白线 */
+  if (speed > 6){
+    ctx.strokeStyle = `rgba(244,239,230,${speed/30})`;
+    ctx.lineWidth = w * 0.3;
+    ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke();
+  }
+}
+/* 墨滴 */
+function inkDrop(x, y){
+  const layers = 4;
+  for (let i = layers; i > 0; i--){
+    const r = i * 8 + Math.random()*4;
+    const a = 0.06 + (layers - i) * 0.04;
+    ctx.fillStyle = `rgba(30,28,26,${a})`;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, 7); ctx.fill();
+  }
+  ctx.fillStyle = 'rgba(30,28,26,0.85)';
+  ctx.beginPath(); ctx.arc(x, y, 3, 0, 7); ctx.fill();
+}
+
+/* 事件 */
+cv.addEventListener('pointerdown', e => {
+  drawing = true;
+  const x = e.clientX, y = e.clientY;
+  if (tool === 'drop') { inkDrop(x, y); }
+  else { lastX = x; lastY = y; lastSpeed = 0; }
+});
+cv.addEventListener('pointermove', e => {
+  if (!drawing || tool !== 'brush') return;
+  const x = e.clientX, y = e.clientY;
+  const speed = Math.hypot(x - lastX, y - lastY);
+  drawBrush(lastX, lastY, x, y, speed);
+  lastX = x; lastY = y; lastSpeed = speed;
+});
+addEventListener('pointerup', () => drawing = false);
+
+/* 触摸支持 */
+cv.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  drawing = true; lastX = t.clientX; lastY = t.clientY;
+}, { passive: true });
+cv.addEventListener('touchmove', e => {
+  if (!drawing) return;
+  const t = e.touches[0];
+  const speed = Math.hypot(t.clientX - lastX, t.clientY - lastY);
+  drawBrush(lastX, lastY, t.clientX, t.clientY, speed);
+  lastX = t.clientX; lastY = t.clientY;
+}, { passive: true });
+addEventListener('touchend', () => drawing = false);
+
+/* 演示：自动画一笔山水骨架 */
+setTimeout(() => {
+  ctx.strokeStyle = 'rgba(30,28,26,0.5)'; ctx.lineWidth = 3; ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.moveTo(innerWidth*0.15, innerHeight*0.35);
+  ctx.bezierCurveTo(innerWidth*0.3, innerHeight*0.15, innerWidth*0.5, innerHeight*0.3, innerWidth*0.7, innerHeight*0.25);
+  ctx.stroke();
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(innerWidth*0.2, innerHeight*0.45);
+  ctx.bezierCurveTo(innerWidth*0.35, innerHeight*0.25, innerWidth*0.55, innerHeight*0.4, innerWidth*0.65, innerHeight*0.3);
+  ctx.stroke();
+}, 2000);
+</script>
+</body>
+</html>

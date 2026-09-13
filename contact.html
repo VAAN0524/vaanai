@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>联系 · Vaan</title>
+<style>
+  #siteTabs{position:fixed;top:0;left:0;right:0;z-index:98;display:flex;gap:4px;
+    justify-content:center;align-items:center;padding:10px 12px 8px;
+    background:linear-gradient(rgba(5,8,14,.72),rgba(5,8,14,0));pointer-events:none;}
+  #siteTabs .tab{pointer-events:auto;text-decoration:none;font-size:12.5px;
+    padding:7px 15px;border-radius:999px;color:rgba(220,228,240,.72);
+    background:rgba(13,18,30,.6);border:1px solid rgba(140,160,190,.2);
+    backdrop-filter:blur(10px);transition:all .2s;white-space:nowrap;cursor:pointer;}
+  #siteTabs a.tab:hover{color:#fff;border-color:rgba(255,255,255,.5);transform:translateY(-1px)}
+  #siteTabs .tab.act{color:#0c1220;background:rgba(235,240,248,.94);border-color:#fff;font-weight:600}
+  #siteTabs .tab.soon{opacity:.4;cursor:default}
+  @media (max-width:640px){
+    #siteTabs{padding:7px 6px 5px;gap:3px}
+    #siteTabs .tab{padding:7px 11px;font-size:12px}
+    #siteTabs .tab.soon{display:none}
+  }
+</style><style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{min-height:100vh;background:#f4efe6;color:#2b2620;
+    font-family:-apple-system,"PingFang SC","Songti SC",serif;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    padding:96px 20px 48px;position:relative;overflow:hidden}
+  body::before{content:"";position:fixed;inset:0;pointer-events:none;opacity:.5;
+    background:radial-gradient(1200px 500px at 70% -10%, #fff8, transparent),
+               radial-gradient(900px 600px at 0% 110%, #e8ddc8, transparent)}
+  .seal{position:absolute;right:9vw;bottom:11vh;width:92px;height:92px;border:3px solid #b3352c;
+    border-radius:10px;color:#b3352c;display:flex;align-items:center;justify-content:center;
+    writing-mode:vertical-rl;font-size:30px;font-weight:700;letter-spacing:8px;
+    font-family:"Songti SC","STSong",serif;transform:rotate(6deg);opacity:.88;user-select:none}
+  h1{font-size:clamp(2rem,5vw,3rem);font-weight:700;letter-spacing:.12em;margin-bottom:.5rem}
+  .sub{color:#8a7f6d;font-size:.95rem;letter-spacing:.28em;margin-bottom:3rem}
+  .cards{display:flex;flex-direction:column;gap:18px;width:min(480px,92vw)}
+  a.card{display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit;
+    background:rgba(255,253,248,.82);border:1px solid #d8cdb6;border-radius:14px;
+    padding:20px 24px;transition:all .22s ease;box-shadow:0 2px 14px rgba(90,74,48,.08)}
+  a.card:hover{transform:translateY(-2px);border-color:#b3352c;box-shadow:0 8px 26px rgba(179,53,44,.14)}
+  .ic{font-size:26px}
+  .ct b{display:block;font-size:1.02rem;letter-spacing:.04em}
+  .ct span{color:#8a7f6d;font-size:.82rem}
+  .foot{margin-top:3.2rem;color:#a89a82;font-size:.78rem;letter-spacing:.2em}
+  @media (max-width:640px){ .seal{width:64px;height:64px;font-size:20px;right:6vw;bottom:6vh} }
+</style></head>
+<nav id="siteTabs">
+  <a class="tab" href="index.html">⚡ 实验室</a>
+  <a class="tab" href="bianjing.html">🏯 乐高汴京</a>
+  <a class="tab act" href="contact.html">📮 联系</a>
+  <span class="tab soon">🧩 敬请期待</span>
+  <span class="tab soon">✨ 敬请期待</span>
+</nav>
+<body>
+<h1>联 系</h1>
+<p class="sub">项目合作 · 交流探讨</p>
+<div class="cards">
+  <a class="card" href="https://github.com/VAAN0524" target="_blank" rel="noopener">
+    <span class="ic">🐙</span><span class="ct"><b>GitHub · VAAN0524</b><span>全部开源项目与源码</span></span>
+  </a>
+  <a class="card" href="mailto:448484359@163.com">
+    <span class="ic">✉️</span><span class="ct"><b>448484359@163.com</b><span>合作与交流请来信</span></span>
+  </a>
+</div>
+<p class="foot">VIBE-CODING LAB · 汴京 / 星海</p>
+<div class="seal">汴京</div>
+</body>
+</html>

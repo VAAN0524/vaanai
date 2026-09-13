@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>墨 · Fluid Ink</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:#f5f0e8;
+    font-family:"Songti SC","STSong",-apple-system,serif}
+  canvas{display:block;position:fixed;inset:0;cursor:crosshair}
+  #tabs{position:fixed;top:0;left:0;right:0;z-index:98;display:flex;gap:4px;
+    justify-content:center;align-items:center;padding:10px 12px 8px;pointer-events:none}
+  #tabs .tab{pointer-events:auto;text-decoration:none;font-size:12px;
+    padding:6px 14px;border-radius:999px;color:rgba(80,68,48,.65);
+    background:rgba(245,240,232,.7);border:1px solid rgba(120,100,64,.18);white-space:nowrap}
+  #tabs a.tab:hover{color:#3a2a1a;border-color:rgba(120,100,64,.4)}
+  #tabs .tab.act{color:#f4efe6;background:#5a4a2a;border-color:#5a4a2a;font-weight:600}
+  #title{position:fixed;right:5vw;top:8vh;z-index:10;pointer-events:none;
+    writing-mode:vertical-rl;display:flex;gap:14px}
+  #title .t{font-size:clamp(2rem,4.5vw,3rem);font-weight:700;color:#1a1815;
+    letter-spacing:.4em}
+  #title .sub{font-size:.8rem;color:rgba(80,68,48,.45);letter-spacing:.25em}
+  #title .seal{width:40px;height:40px;border:2px solid #b3352c;border-radius:5px;
+    color:#b3352c;display:flex;align-items:center;justify-content:center;
+    font-size:14px;font-weight:700;transform:rotate(3deg);align-self:flex-start;margin-top:10px}
+  #hint{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:10;
+    font-size:11px;color:rgba(80,68,48,.4);letter-spacing:.3em;pointer-events:none}
+</style>
+</head>
+<body>
+<nav id="tabs">
+  <a class="tab" href="index.html">⚡ 实验室</a>
+  <a class="tab" href="bianjing.html">🏯 乐高汴京</a>
+  <a class="tab" href="shanhe.html">🏔 云梦山河</a>
+  <a class="tab act" href="ink.html">墨 · Fluid Ink</a>
+  <a class="tab" href="contact.html">📮 联系</a>
+</nav>
+<div id="title"><div class="t">墨 韵</div><div class="sub">FLUID INK</div><div class="seal">墨</div></div>
+<div id="hint">点击注墨 · 拖动画笔 · 摇动手机搅动流场</div>
+<canvas id="cv"></canvas>
+<script>
+/* ═══ 流体水墨 · Stable Fluids (Jos Stam 1999) 简化实现 ═══
+   velocity field + dye field，低分辨率模拟高分辨率渲染
+   宣纸底色 + 墨色扩散 = 水墨晕开的物理美感 */
+const simW = 128, simH = 96;                   // 模拟分辨率（低=柔和）
+let vx, vy, vx0, vy0, dye, dye0;               // 速度场 + 染料场
+const cv = document.getElementById('cv');
+const ctx = cv.getContext('2d');
+let W, H;
+let mouse = { x: -1, y: -1, px: -1, py: -1, down: false };
+let splatColor = [0.08, 0.07, 0.06];           // 墨色
+let time = 0;
+
+function initSim() {
+  const N = simW * simH;
+  vx = new Float32Array(N); vy = new Float32Array(N);
+  vx0 = new Float32Array(N); vy0 = new Float32Array(N);
+  dye = new Float32Array(N * 3); dye0 = new Float32Array(N * 3);
+}
+function resize() {
+  W = cv.width = innerWidth; H = cv.height = innerHeight;
+  if (!vx) initSim();
+}
+resize(); addEventListener('resize', resize);
+
+/* 双线性采样 */
+function sample(f, x, y) {
+  x = Math.max(0.5, Math.min(simW - 1.5, x));
+  y = Math.max(0.5, Math.min(simH - 1.5, y));
+  const x0 = Math.floor(x), y0 = Math.floor(y);
+  const fx = x - x0, fy = y - y0;
+  const i = y0 * simW + x0;
+  return [
+    f[i] * (1-fx) * (1-fy) + f[i+1] * fx * (1-fy),
+    f[i+simW] * (1-fx) * fy + f[i+1+simW] * fx * fy,
+  ];
+}
+/* 平流（半拉格朗日） */
+function advect(dst, src, u, v, dt) {
+  for (let y = 1; y < simH - 1; y++) {
+    for (let x = 1; x < simW - 1; x++) {
+      const i = y * simW + x;
+      const [su] = sample(u, x - u[i] * dt, y - v[i] * dt);
+      const [sv] = sample(v, x - u[i] * dt, y - v[i] * dt);
+      const [sr,sg,sb] = sample(src, x - su * dt, y - sv * dt);
+      const o = i * 3;
+      dst[o] = sr; dst[o+1] = sg; dst[o+2] = sb;
+    }
+  }
+}
+function advectV(dst, src, u, v, dt) {
+  for (let y = 1; y < simH - 1; y++) {
+    for (let x = 1; x < simW - 1; x++) {
+      const i = y * simW + x;
+      const [su] = sample(u, x - u[i] * dt, y - v[i] * dt);
+      const [sv] = sample(v, x - u[i] * dt, y - v[i] * dt);
+      dst[i] = su; dst[i + simW*simH] = sv;
+    }
+  }
+}
+/* 扩散 */
+function diffuse(dst, src, dt, diff) {
+  const a = dt * diff * simW * simH;
+  for (let k = 0; k < 8; k++) {
+    for (let y = 1; y < simH - 1; y++) {
+      for (let x = 1; x < simW - 1; x++) {
+        const i = y * simW + x;
+        dst[i] = (src[i] + a * (dst[i-1] + dst[i+1] + dst[i-simW] + dst[i+simW])) / (1 + 4*a);
+      }
+    }
+  }
+}
+/* 投影（无散度） */
+function project(u, v, p, div) {
+  for (let y = 1; y < simH - 1; y++) {
+    for (let x = 1; x < simW - 1; x++) {
+      const i = y * simW + x;
+      div[i] = -0.5 * (u[i+1] - u[i-1] + v[i+simW] - v[i-simW]) / simW;
+      p[i] = 0;
+    }
+  }
+  for (let k = 0; k < 12; k++) {
+    for (let y = 1; y < simH - 1; y++) {
+      for (let x = 1; x < simW - 1; x++) {
+        const i = y * simW + x;
+        p[i] = (div[i] + p[i-1] + p[i+1] + p[i-simW] + p[i+simW]) / 4;
+      }
+    }
+  }
+  for (let y = 1; y < simH - 1; y++) {
+    for (let x = 1; x < simW - 1; x++) {
+      const i = y * simW + x;
+      u[i] -= 0.5 * simW * (p[i+1] - p[i-1]);
+      v[i] -= 0.5 * simH * (p[i+simW] - p[i-simW]);
+    }
+  }
+}
+/* 注入墨滴 + 力场 */
+function splat(x, y, dx, dy) {
+  const sx = x / innerWidth * simW;
+  const sy = y / innerHeight * simH;
+  const R = 3;
+  for (let j = -R; j <= R; j++) {
+    for (let k = -R; k <= R; k++) {
+      if (j*j + k*k > R*R) continue;
+      const px = Math.floor(sx + k), py = Math.floor(sy + j);
+      if (px < 1 || px >= simW-1 || py < 1 || py >= simH-1) continue;
+      const i = py * simW + px;
+      vx[i] += dx * 8; vy[i] += dy * 8;
+      const o = i * 3;
+      dye[o] += splatColor[0]; dye[o+1] += splatColor[1]; dye[o+2] += splatColor[2];
+    }
+  }
+}
+
+/* 渲染：dye field → canvas */
+const simCv = document.createElement('canvas');
+simCv.width = simW; simCv.height = simH;
+const simCtx = simCv.getContext('2d');
+const simImg = simCtx.createImageData(simW, simH);
+function render() {
+  const d = simImg.data;
+  for (let i = 0; i < simW * simH; i++) {
+    const o = i * 3;
+    /* 墨色映射：dye 浓度→灰度反转（浓=黑，淡=白） */
+    const dr = Math.min(1, dye[o]), dg = Math.min(1, dye[o+1]), db = Math.min(1, dye[o+2]);
+    const lum = (dr + dg + db) / 3;
+    const ink = Math.min(1, lum * 3);
+    /* 宣纸色 (245,240,232) → 墨色 (25,23,20) */
+    const r = 245 - ink * 220, g = 240 - ink * 217, b = 232 - ink * 212;
+    const p = i * 4;
+    d[p] = r; d[p+1] = g; d[p+2] = b; d[p+3] = 255;
+  }
+  simCtx.putImageData(simImg, 0, 0);
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = 'high';
+  ctx.drawImage(simCv, 0, 0, innerWidth, innerHeight);
+}
+
+/* 主循环 */
+function step(dt) {
+  /* 扩散速度场 */
+  diffuse(vx0, vx, dt, 0.0001);
+  diffuse(vy0, vy, dt, 0.0001);
+  project(vx0, vy0, vx, vy);
+  /* 平流速度场 */
+  advectV(vx, vx0, vx0, vy0, dt);
+  advectV(vy, vy0, vx0, vy0, dt);
+  project(vx, vy, vx0, vy0);
+  /* 平流染料场 */
+  advect(dye, dye0, vx, vy, dt);
+  /* 染料衰减（极慢——墨渍持久） */
+  const fade = 0.9995;
+  for (let i = 0; i < dye.length; i++) dye[i] *= fade;
+  /* 交换缓冲 */
+  [vx, vx0] = [vx0, vx]; [vy, vy0] = [vy0, vy];
+  [dye, dye0] = [dye0, dye];
+}
+
+/* ═══ 交互 ═══ */
+cv.addEventListener('pointerdown', e => {
+  mouse.down = true;
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  splat(e.clientX, e.clientY, 0, 0);
+});
+cv.addEventListener('pointermove', e => {
+  mouse.px = mouse.x; mouse.py = mouse.y;
+  mouse.x = e.clientX; mouse.y = e.clientY;
+  if (mouse.down || e.buttons > 0) {
+    const dx = mouse.x - mouse.px, dy = mouse.y - mouse.py;
+    splat(mouse.x, mouse.y, dx * 0.5, dy * 0.5);
+  }
+});
+addEventListener('pointerup', () => mouse.down = false);
+/* 触摸 */
+cv.addEventListener('touchmove', e => {
+  const t = e.touches[0];
+  const dx = t.clientX - (mouse.x || t.clientX);
+  const dy = t.clientY - (mouse.y || t.clientY);
+  mouse.x = t.clientX; mouse.y = t.clientY;
+  splat(t.clientX, t.clientY, dx * 0.3, dy * 0.3);
+}, { passive: true });
+
+/* 自动演示：开场自动滴墨 */
+setTimeout(() => splat(innerWidth * 0.35, innerHeight * 0.45, 3, -1), 800);
+setTimeout(() => splat(innerWidth * 0.55, innerHeight * 0.35, -2, 1), 1400);
+setTimeout(() => splat(innerWidth * 0.45, innerHeight * 0.55, 1, 2), 2000);
+setTimeout(() => splat(innerWidth * 0.65, innerHeight * 0.5, -1, -2), 2600);
+setTimeout(() => splat(innerWidth * 0.25, innerHeight * 0.6, 2, -1), 3200);
+
+/* 主循环 */
+let last = performance.now();
+function loop(now) {
+  const dt = Math.min((now - last) / 1000, 0.033); last = now;
+  time += dt;
+  step(dt);
+  render();
+  requestAnimationFrame(loop);
+}
+resize();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>

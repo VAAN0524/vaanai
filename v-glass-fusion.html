@@ -1,0 +1,1406 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaan · Vibe-Coding</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #0a1220; overflow: hidden; height: 100%; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; color: #d8dce8; cursor: none; }
+  #bgParticles { position: fixed; inset: 0; z-index: 0; }
+  #glWrap { position: fixed; inset: 0; z-index: 1; }
+  #glWrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; touch-action: none; }
+  /* 流沙字转入 3D 场景（CanvasTexture+alphaTest）——canvas 仅作离屏纹理源 */
+  #sandWrap { position: fixed; left: 0; top: 0; width: 46vw; height: 100vh; z-index: 2; pointer-events: none; visibility: hidden; }
+  #sandWrap canvas { position: absolute; inset: 0; width: 100%; height: 100%; }
+  @media (max-width: 860px) and (orientation: portrait) {
+    #sandWrap { width: 100vw; height: 44vh; }
+    /* 竖屏底部防叠三分区：contact 左下 / dots 右侧竖排 / hint 上移到 brand 下方 */
+    body #hint { bottom: auto; top: 13.5vh; }
+    body #dots { left: auto; right: 10px; bottom: 4vh; transform: none;
+                 flex-direction: column; gap: 4px; }
+    #contact a, #hint { text-shadow: 0 1px 10px rgba(4,8,16,.95), 0 0 3px rgba(4,8,16,.9); }
+  }
+  @media (max-width: 860px) and (orientation: landscape) {
+    #sandWrap { width: 40vw; height: 100vh; }
+  }
+  @media (max-width: 860px) {
+    .mbox { grid-template-columns: 1fr; max-height: 92vh; }
+    .mbox video { max-height: 32vh; }
+    .mbox .md { padding: 1.2rem 1.4rem; }
+  }
+  #dots { position: fixed; right: 22px; bottom: 4vh; z-index: 9; display: flex; flex-direction: column; gap: 10px; }
+  #dots button { width: 24px; height: 24px; background: none; border: none; cursor: pointer;
+                 display: flex; align-items: center; justify-content: center; }
+  #dots button i { width: 7px; height: 7px; border-radius: 50%; background: rgba(160,170,190,.4);
+                   transition: all .3s ease; }
+  #dots button.act i { background: rgba(0,217,255,.95); box-shadow: 0 0 10px rgba(0,217,255,.7); }
+
+  #brand { position: fixed; left: 50%; top: 6.5vh; transform: translateX(-50%);
+           z-index: 3; text-align: center; pointer-events: none; }
+  #brand .tag { font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .42em;
+                color: rgba(0,217,255,.7); margin-bottom: .6rem; }
+  #brand h1 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #f2f5fb;
+              letter-spacing: .06em; text-shadow: 0 4px 40px rgba(0,0,0,.7); }
+
+  #contact { position: fixed; left: 2.2vw; bottom: 2.6vh; z-index: 3;
+             display: flex; flex-direction: column; gap: .5rem; }
+  #contact a { font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .14em;
+               color: rgba(150,168,200,.62); text-decoration: none; cursor: pointer;
+               transition: color .3s ease, text-shadow .3s ease; }
+  #contact a:hover { color: rgba(0,217,255,.95); text-shadow: 0 0 12px rgba(0,217,255,.55); }
+
+  #hint { position: fixed; left: 50%; bottom: 2.4vh; transform: translateX(-50%);
+          z-index: 3; font-size: .72rem; color: rgba(140,150,170,.55);
+          letter-spacing: .18em; pointer-events: none; }
+
+  #dots { position: fixed; left: 50%; bottom: 4.2vh; transform: translateX(-50%);
+          z-index: 3; display: flex; gap: 13px; }
+  #dots button { width: 28px; height: 28px; background: none; border: none; cursor: pointer;
+                 display: flex; align-items: center; justify-content: center; }
+  #dots button i { width: 7px; height: 7px; border-radius: 50%; background: rgba(160,170,190,.35);
+                   transition: all .35s cubic-bezier(.34,1.56,.64,1); }
+  #dots button.act i { background: rgba(0,217,255,.95); box-shadow: 0 0 12px rgba(0,217,255,.8);
+                       transform: scale(1.45); }
+
+  #modal { cursor: auto;
+           position: fixed; inset: 0; z-index: 200; background: rgba(4,6,11,.92);
+           backdrop-filter: blur(14px); display: none; align-items: center;
+           justify-content: center; padding: 4vh 4vw; }
+  #modal.open { display: flex; }
+  .mbox { width: min(1120px, 100%); max-height: 88vh; background: #0b0f1c;
+          border: 1px solid rgba(0,217,255,.22); border-radius: 18px; overflow: hidden;
+          display: grid; grid-template-columns: 1.25fr 1fr; box-shadow: 0 30px 90px rgba(0,0,0,.7); }
+  .mbox video { width: 100%; height: 100%; object-fit: cover; background: #06080f; }
+  .mbox .md { padding: 2rem 2.2rem; overflow-y: auto; }
+  .mbox .md h2 { color: #f2f5fb; font-size: 1.5rem; margin-bottom: 1rem; }
+  .mbox .md h4 { color: rgba(0,217,255,.9); font-size: .8rem; letter-spacing: .15em; margin: 1.2rem 0 .45rem; }
+  .mbox .md p { font-size: .88rem; line-height: 1.85; color: #aeb6c6; }
+  .mbox .md code { display: block; margin-top: .5rem; font: .78rem/1.7 "SF Mono", Menlo, monospace; color: #8fa8c8; }
+  #mClose, .link { cursor: pointer; }
+  #modal video { cursor: default; }
+  #mClose { position: absolute; top: 18px; right: 22px; width: 38px; height: 38px;
+            border-radius: 50%; border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.06); color: #dfe5f0; font-size: 16px; cursor: pointer; }
+  #mClose:hover { background: rgba(255,255,255,.14); }
+</style>
+</head>
+<body>
+
+<canvas id="bgParticles"></canvas>
+<div id="sandWrap"><canvas id="sandText"></canvas></div>
+<div id="glWrap"></div>
+<div id="dots"></div>
+<div id="hint"></div>
+<div id="contact">
+  <a href="https://github.com/VAAN0524" target="_blank" rel="noopener">GITHUB ↗</a>
+  <a href="mailto:448484359@163.com">448484359@163.com</a>
+</div>
+
+<div id="modal">
+  <div class="mbox">
+    <button id="mClose">✕</button>
+    <video id="mVideo" src="" muted loop playsinline></video>
+    <div class="md">
+      <h2 id="mTitle"></h2>
+      <h4>工作原理</h4><p id="mHow"></p>
+      <h4>工程亮点</h4><p id="mHi"></p>
+      <h4>技术栈</h4><code id="mStack"></code>
+    </div>
+  </div>
+</div>
+
+<script>
+/* 流沙文字 —— vaanai 主站 Hero 粒子状态机移植（离屏纹理源，3D 面片采样）
+   FORM(错峰弹簧+curl微扰+sprint) → HOLD(呼吸) → SCATTER(curl流场融化→转向新词)，全程无瞬移 */
+(() => {
+  const cv = document.getElementById('sandText');
+  const ctx = cv.getContext('2d');
+  let W = 0, H = 0;
+  const WORDS = [
+    ['Vaan'], ['Ai Builder'],
+    ['临床药学', '五年制'],
+    ['深耕 IVD', '行业十年'],
+    ['从零到一', '建部门'],
+    ['积极拥抱', 'Ai'],
+    ['以少胜多'],
+    ['合规第一', '长期主义'],
+  ];
+  const COLORS = [
+    [0,217,255],[108,92,231],[247,148,161],[255,202,87],
+    [72,219,133],[159,122,237],[255,118,117],
+  ];
+
+  let activeN = 4200, SZ_SCALE = 1;
+  const FIXED_N = 4200;
+
+  function resize() {
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const landscape = innerWidth > innerHeight;
+    W = Math.floor(innerWidth * (landscape ? 0.40 : innerWidth <= 860 ? 1 : 0.46));
+    H = Math.floor(innerHeight * (landscape ? 1 : innerWidth <= 860 ? 0.44 : 1));
+    cv.width = W * dpr; cv.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    if (W < 480)      { activeN = 2400; SZ_SCALE = 0.45; }
+    else if (W < 768) { activeN = 3200; SZ_SCALE = 0.55; }
+    else              { activeN = FIXED_N; SZ_SCALE = 1; }
+  }
+
+  // 固定粒子池
+  const particles = [];
+  for (let i = 0; i < FIXED_N; i++) {
+    particles.push({
+      x: 0, y: 0, vx: 0, vy: 0, tx: 0, ty: 0,
+      ease: 0.03 + Math.random() * 0.05,
+      color: COLORS[i % COLORS.length],
+      sz: 2.2 + Math.random() * 2.0,
+      delay: Math.floor(Math.random() * 50),
+      stiffness: 0.015 + Math.random() * 0.04,
+    });
+  }
+
+  function getPoints(lines) {
+    const off = document.createElement('canvas');
+    off.width = W; off.height = H;
+    const oc = off.getContext('2d');
+    // 多行排版（主站方案）：长词拆行 → 每行字号不再被总宽压扁，面板填充率大增
+    const font = s => `600 ${s}px -apple-system, "PingFang SC", sans-serif`;
+    let fs = Math.round(Math.min(W * 0.34, H * 0.46));
+    oc.font = font(fs);
+    let tw = Math.max(...lines.map(l => oc.measureText(l).width));
+    if (tw > W * 0.82) { fs = Math.max(20, Math.floor(fs * W * 0.82 / tw)); oc.font = font(fs); }
+    const LH = 1.28;
+    if (fs * LH * lines.length > H * 0.92) {   // 总高溢出面板再压
+      fs = Math.max(20, Math.floor(H * 0.92 / (LH * lines.length)));
+      oc.font = font(fs);
+    }
+    oc.textAlign = 'center'; oc.textBaseline = 'middle';
+    oc.fillStyle = '#fff';
+    // ±0.7px 五次偏移绘制 → 笔画约加粗 1px（细横画不被采样网格整行漏掉）
+    const OFF = [[0, 0], [-0.7, 0], [0.7, 0], [0, -0.7], [0, 0.7]];
+    const y0 = H / 2 - (lines.length - 1) * fs * LH / 2;
+    lines.forEach((ln, i) => {
+      const y = y0 + i * fs * LH;
+      for (const [dx, dy] of OFF) oc.fillText(ln, W / 2 + dx, y + dy);
+    });
+    const img = oc.getImageData(0, 0, W, H).data;
+    // 自适应步长：点数 ≤ 0.9×activeN
+    let step = 2, pts = [];
+    do {
+      pts = [];
+      for (let py = 0; py < H; py += step)
+        for (let px = 0; px < W; px += step)
+          if (img[(py * W + px) * 4 + 3] > 60) pts.push(px, py);
+      if (pts.length / 2 > activeN * 0.9) step++;
+    } while (pts.length / 2 > activeN * 0.9 && step < 40);
+    return pts;
+  }
+
+  function assignTargets() {
+    const pts = getPoints(WORDS[wordIdx]);
+    if (!pts.length) return;
+    const n = pts.length / 2;
+    for (let i = 0; i < activeN; i++) {        // 多粒子堆叠同点 → 笔画粗实
+      const k = (i % n) * 2;
+      particles[i].tx = pts[k];
+      particles[i].ty = pts[k + 1];
+    }
+  }
+
+  // ── curl noise 流场（有机运动来源）──
+  function h2(x, y) { return ((Math.sin(x * 127.1 + y * 311.7) * 43758.5453 % 1) + 1) % 1; }
+  function n2(x, y) {
+    const ix = Math.floor(x), iy = Math.floor(y);
+    const fx = x - ix, fy = y - iy;
+    const ux = fx * fx * (3 - 2 * fx), uy = fy * fy * (3 - 2 * fy);
+    return h2(ix,iy)*(1-ux)*(1-uy)+h2(ix+1,iy)*ux*(1-uy)
+         +h2(ix,iy+1)*(1-ux)*uy+h2(ix+1,iy+1)*ux*uy;
+  }
+  const curlFx = (x, y, t) => (n2(x, y + 0.4 + t) - n2(x, y - 0.4 + t)) / 0.8;
+  const curlFy = (x, y, t) => -(n2(x + 0.4 + t, y) - n2(x - 0.4 + t, y)) / 0.8;
+
+  const STATE = { FORM: 0, HOLD: 1, SCATTER: 2 };
+  // ?word=N 可指定初始词（演示/调试直达）
+  let state = STATE.FORM, stateTimer = 0, frame = 0;
+  let wordIdx = Math.min(WORDS.length - 1, Math.max(0, +new URLSearchParams(location.search).get('word') || 0));
+
+  window.__sandDebug = { word: '', phase: 0 };
+  resize();
+  for (const p of particles) { p.x = Math.random() * W; p.y = Math.random() * H; }
+  assignTargets();
+
+  function draw() {
+    requestAnimationFrame(draw);
+    frame++;
+    const t = frame * 16.7;
+    const flowT = t * 0.0002;
+    ctx.clearRect(0, 0, W, H);
+    window.__sandDebug = { word: WORDS[wordIdx].join(' '), phase: frame };
+
+    switch (state) {
+      case STATE.FORM: {
+        stateTimer++;
+        const unlocked = Math.min(activeN, stateTimer * (activeN / 45));
+        const sprint = stateTimer > 60 ? 1 + (stateTimer - 60) * 0.06 : 1;
+        for (let i = 0; i < activeN; i++) {
+          const p = particles[i];
+          if (i < unlocked) {
+            const dx = p.tx - p.x, dy = p.ty - p.y;
+            if (dx * dx + dy * dy < 4) { p.x = p.tx; p.y = p.ty; }  // <2px 吸附消毛边
+            else {
+              const curlFade = Math.max(0, 1 - stateTimer / 40);
+              const wob = curlFx(p.x * 0.004, p.y * 0.004, flowT) * 0.4 * curlFade;
+              const wob2 = curlFy(p.x * 0.004, p.y * 0.004, flowT) * 0.4 * curlFade;
+              const e = Math.min(0.5, p.stiffness * sprint);
+              p.x += dx * e + wob;
+              p.y += dy * e + wob2;
+            }
+          }
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
+          ctx.fillRect(p.x, p.y, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
+        }
+        if (stateTimer > 130) { state = STATE.HOLD; stateTimer = 0; }
+        break;
+      }
+      case STATE.HOLD: {
+        stateTimer++;
+        for (let i = 0; i < activeN; i++) {
+          const p = particles[i];
+          const bx = p.x + Math.sin(t * 0.0015 + p.stiffness * 500) * 0.6;
+          const by = p.y + Math.cos(t * 0.0012 + p.stiffness * 300) * 0.5;
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
+          ctx.fillRect(bx, by, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
+        }
+        if (stateTimer > 75) {
+          state = STATE.SCATTER; stateTimer = 0;
+          for (const p of particles) {
+            const ang = Math.random() * Math.PI * 2;
+            const spd = 0.4 + Math.random() * 0.8;
+            p.vx = Math.cos(ang) * spd;
+            p.vy = Math.sin(ang) * spd - 0.1;
+          }
+        }
+        break;
+      }
+      case STATE.SCATTER: {
+        stateTimer++;
+        if (stateTimer === 50) { wordIdx = (wordIdx + 1) % WORDS.length; assignTargets(); }
+        const attractRamp = stateTimer > 65 ? Math.min(1, (stateTimer - 65) / 50) : 0;
+        for (let i = 0; i < activeN; i++) {
+          const p = particles[i];
+          if (stateTimer > p.delay) {
+            const fx = curlFx(p.x * 0.005, p.y * 0.005, flowT) * 0.8;
+            const fy = curlFy(p.x * 0.005, p.y * 0.005, flowT) * 0.8;
+            p.vx = p.vx * 0.96 + fx * 0.15;
+            p.vy = p.vy * 0.96 + fy * 0.15;
+            p.x += p.vx; p.y += p.vy;
+            if (attractRamp > 0) {
+              p.x += (p.tx - p.x) * p.stiffness * attractRamp;
+              p.y += (p.ty - p.y) * p.stiffness * attractRamp;
+              p.vx *= 0.90; p.vy *= 0.90;
+            }
+          }
+          ctx.fillStyle = `rgba(${p.color[0]},${p.color[1]},${p.color[2]},0.8)`;
+          ctx.fillRect(p.x, p.y, p.sz * SZ_SCALE, p.sz * SZ_SCALE);
+        }
+        if (stateTimer > 135) { state = STATE.FORM; stateTimer = 45; }
+        break;
+      }
+    }
+  }
+
+  addEventListener('resize', () => { resize(); assignTargets(); });
+  addEventListener('load', () => { resize(); assignTargets(); });
+  requestAnimationFrame(draw);
+})();
+</script>
+
+<script>
+/* 背景粒子（全屏，底层的粒子流沙）*/
+(() => {
+  const cv = document.getElementById('bgParticles');
+  const ctx = cv.getContext('2d');
+  let W, H, pts = [];
+  function resize() {
+    W = cv.width = innerWidth; H = cv.height = innerHeight;
+    pts = [];
+    const n = Math.min(130, innerWidth * innerHeight / 15000);
+    for (let i = 0; i < n; i++)
+      pts.push({ x: Math.random() * W, y: Math.random() * H, r: 0.6 + Math.random() * 1.7,
+        vx: (Math.random() - 0.5) * 0.25, vy: -0.12 - Math.random() * 0.2, ph: Math.random() * 6.28 });
+  }
+  function tick(t) {
+    requestAnimationFrame(tick);
+    ctx.clearRect(0, 0, W, H);
+    for (const p of pts) {
+      p.x += p.vx; p.y += p.vy;
+      if (p.y < -4) { p.y = H + 4; p.x = Math.random() * W; }
+      if (p.x < -4) p.x = W + 4; if (p.x > W + 4) p.x = -4;
+      const tw = 0.55 + 0.45 * Math.sin(t * 0.001 + p.ph);
+      ctx.fillStyle = `rgba(130,200,235,${0.30 * tw})`;
+      ctx.fillRect(p.x, p.y, p.r, p.r);
+    }
+  }
+  resize();
+  addEventListener('resize', resize);
+  requestAnimationFrame(tick);
+})();
+</script>
+
+<script src="fluid-bg.js"></script>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/examples/jsm/" } }
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const IS_MOBILE = /Mobi|Android/i.test(navigator.userAgent) || (innerWidth <= 860 && 'ontouchstart' in window);
+
+// ── 项目数据 ──
+const PROJECTS = [
+  { ic: '🤖', name: 'QQ-Claude-Proxy', desc: 'QQ 机器人远程操控本地 Claude Code CLI，代码不出本机。', tags: ['TypeScript', 'Node.js', 'Vitest'],
+    video: 'videos/qq-proxy-showcase.mp4',
+    how: 'QQ 消息 → 消息队列 → 本地 Claude Code CLI 执行 → 结果回传 QQ。手机发一条消息就能让 AI 改 bug、跑测试、提交代码。',
+    hi: 'watchdog 断线自愈 · 多会话隔离 · Vitest 完整测试体系', stack: 'TypeScript · Node.js · Vitest · QQ Bot API' },
+  { ic: '📊', name: '库存管理系统 ERP', desc: 'FIFO 批次成本核算 + 实时仪表盘，全栈独立完成。', tags: ['Go/Gin', 'Vue3/TS', 'WebSocket'],
+    video: 'videos/erp-showcase.mp4',
+    how: '采购/销售/库存三大模块，FIFO 批次成本核算引擎，WebSocket 实时推送，ECharts 实时仪表盘。',
+    hi: '净口径利润 · AI 录单 · MCP 直连 · 21 项单测', stack: 'Go/Gin · Vue3/TypeScript · PostgreSQL · Redis' },
+  { ic: '✨', name: 'Particle Painting', desc: '文字从烟雾流沙中聚拢成形——本站 Hero 即成果。', tags: ['Canvas', 'WebGL', '粒子'],
+    video: 'videos/particle-showcase.mp4',
+    how: '逐像素采样文字轮廓生成粒子目标点，零架构流沙 + 弹簧动力学驱动聚拢。',
+    hi: 'Beer-Lambert 光学模型 · 自适应采样 · 按需重建', stack: 'Canvas/WebGL · 粒子系统' },
+  { ic: '🟢', name: 'Slime 桌面宠物', desc: 'macOS 透明史莱姆：果冻渲染、表情系统、跳跃物理。', tags: ['PyObjC', 'CoreAnimation'],
+    video: 'videos/slime-showcase.mp4',
+    how: 'NSPanel 透明窗口 + CoreAnimation 果冻渲染，口语驱动表情与跳跃物理。',
+    hi: '实时口语驱动表情 · squash & stretch', stack: 'Python · PyObjC · CoreAnimation' },
+  { ic: '🧑‍🎤', name: '实时数字人管线', desc: 'Wav2Lip 唇形同步 + Qwen3-TTS 声音克隆 + GFPGAN 超分。', tags: ['Wav2Lip', 'TTS', 'RTMP'],
+    video: 'videos/digitalhuman-showcase.mp4',
+    how: '音频驱动 → Wav2Lip 唇形推理 → GFPGAN 超分 → RTMP 推流全链路，M1 Max 实时。',
+    hi: 'Qwen3-TTS 声音克隆 · MLX 推理优化', stack: 'Wav2Lip · Qwen3-TTS · GFPGAN · RTMP' },
+  { ic: '📐', name: 'DrawIO Scientific Illustrator', desc: '让 AI 在 draw.io 画布上实时绘制科研图，双 Server 架构。', tags: ['MCP', 'draw.io', 'AI'],
+    video: 'videos/drawio-showcase.mp4',
+    how: 'MCP 协议插件——AI 对话生成流程图、实验示意图、论文插图，直接落到 draw.io 画布。',
+    hi: '双 MCP Server 架构 · Win/macOS 支持', stack: 'MCP Protocol · TypeScript' },
+];
+
+// ── 渲染基础（已验证：scene.background + RoomEnvironment = 黑水晶玻璃可见）──
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, IS_MOBILE ? 1.5 : 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.5;
+document.getElementById('glWrap').appendChild(renderer.domElement);
+let perfEl = null, perfFrames = 0, perfT0 = performance.now();
+if (new URLSearchParams(location.search).get('perf')) {
+  perfEl = document.createElement('div');
+  perfEl.style.cssText = 'position:fixed;top:10px;left:10px;z-index:99;font:11px/1.7 "SF Mono",Menlo,monospace;color:#7ee0c0;background:rgba(4,8,16,.8);border:1px solid rgba(0,217,255,.3);border-radius:8px;padding:6px 10px;pointer-events:none;white-space:pre';
+  document.body.appendChild(perfEl);
+}
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x262833);  // 中性灰：少一分蓝，V 透射更无色
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(44, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(2.4, 0.4, 7.6);
+camera.lookAt(2.4, -0.1, 0);
+
+// ── 灯光（点光随鼠标移动 = 光源交互）──
+scene.add(new THREE.AmbientLight(0x44506a, 1.1));
+const keyL = new THREE.DirectionalLight(0xcfe8ff, 2.4);
+keyL.position.set(-3.5, 4.5, 4.5);
+scene.add(keyL);
+const rimL = new THREE.DirectionalLight(0x6c5ce7, 1.4);
+rimL.position.set(3.5, -1, -3);
+scene.add(rimL);
+const mouseL = new THREE.PointLight(0x9fe8ff, 420, 13, 2);   // 近距强光：贴到玻璃上才亮起
+const fillL = new THREE.PointLight(0x6c5ce7, 140, 18, 2);
+fillL.position.set(2, 1.5, -1);
+scene.add(fillL);
+mouseL.position.set(0, 0.8, 4.6);
+scene.add(mouseL);
+// 鼠标光源的可见本体：径向渐变光晕（additive 叠加，随时间呼吸）
+const haloCv = document.createElement('canvas');
+haloCv.width = haloCv.height = 128;
+{
+  const hc = haloCv.getContext('2d');
+  const g = hc.createRadialGradient(64, 64, 0, 64, 64, 64);
+  g.addColorStop(0, 'rgba(255,255,255,.85)');
+  g.addColorStop(0.2, 'rgba(200,240,255,.32)');
+  g.addColorStop(0.5, 'rgba(150,205,255,.08)');
+  g.addColorStop(1, 'rgba(150,205,255,0)');
+  hc.fillStyle = g;
+  hc.fillRect(0, 0, 128, 128);
+}
+const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+  map: new THREE.CanvasTexture(haloCv), color: 0x9fe8ff,
+  blending: THREE.AdditiveBlending, depthWrite: false, transparent: true,
+}));
+halo.scale.setScalar(0.95);
+scene.add(halo);
+
+// ── 玻璃 V（黑水晶透明玻璃，验证过的参数）──
+const vs = new THREE.Shape();
+vs.moveTo(-1.15, 1.25); vs.lineTo(-0.42, 1.25); vs.lineTo(0, 0.10);
+vs.lineTo(0.42, 1.25); vs.lineTo(1.15, 1.25); vs.lineTo(0.26, -1.25);
+vs.lineTo(-0.26, -1.25); vs.closePath();
+const vGeo = new THREE.ExtrudeGeometry(vs, {
+  depth: 1.1, bevelEnabled: true, bevelThickness: 0.1,
+  bevelSize: 0.09, bevelSegments: 5,
+});
+vGeo.center();
+const vGlass = new THREE.Mesh(vGeo, new THREE.MeshPhysicalMaterial({
+  transmission: 1, thickness: 1.1, roughness: 0.06, ior: 1.55,
+  dispersion: 2.5, envMapIntensity: 1.15,
+  color: 0xffffff,
+  attenuationColor: new THREE.Color(0.985, 0.998, 1.0), attenuationDistance: 9.0,
+  iridescence: 0.15, iridescenceIOR: 1.3,
+}));
+// 侧身倾斜：Extrude 的厚度在 z 方向，正对相机只是薄片——
+// 绕 X 轴俯仰让厚度侧面可见，自转绕 Y
+vGlass.rotation.x = -0.22;
+vGlass.position.y = 0.15;
+vGlass.position.x = 2.4;
+scene.add(vGlass);
+
+// 物理折射修正（穷举研究结论：正面近正入射弯曲≈9°，侧面/斜边≈34°）
+// three.js 的 thickness 是全局常量 → 正面也被同量偏移，违背物理。
+// 用 onBeforeCompile 将折射路径长度按入射角计算：
+//   pathLen = thickness / cos(折射角) —— 视线斜穿玻璃的光路更长（Snell 物理）
+// ── 折射物理修正（直接改 ShaderChunk：onBeforeCompile 拿到的是未展开模板，
+//    之前对 chunk 内部行的 replace 全部静默失败——从未生效过）──
+// V 臂楔形棱镜 + Snell 光路：替换 getVolumeTransmissionRay 函数本体。
+// 平板近似只做平移；V 臂内外斜面不平行（楔角≈9.4°尖朝下）→ 出射面二次折射
+// 产生净偏向角 δ≈(n−1)·A（方向向楔底=世界+y），逐通道 ior → 棱镜色散。
+THREE.ShaderChunk.transmission_pars_fragment = THREE.ShaderChunk.transmission_pars_fragment.replace(
+  `vec3 getVolumeTransmissionRay( const in vec3 n, const in vec3 v, const in float thickness, const in float ior, const in mat4 modelMatrix ) {
+		vec3 refractionVector = refract( - v, normalize( n ), 1.0 / ior );
+		vec3 modelScale;
+		modelScale.x = length( vec3( modelMatrix[ 0 ].xyz ) );
+		modelScale.y = length( vec3( modelMatrix[ 1 ].xyz ) );
+		modelScale.z = length( vec3( modelMatrix[ 2 ].xyz ) );
+		return normalize( refractionVector ) * thickness * modelScale;
+	}`,
+  `vec3 getVolumeTransmissionRay( const in vec3 n, const in vec3 v, const in float thickness, const in float ior, const in mat4 modelMatrix ) {
+		vec3 refractionVector = refract( - v, normalize( n ), 1.0 / ior );
+    vec3 modelScale;
+    modelScale.x = length( vec3( modelMatrix[ 0 ].xyz ) );
+    modelScale.y = length( vec3( modelMatrix[ 1 ].xyz ) );
+    modelScale.z = length( vec3( modelMatrix[ 2 ].xyz ) );
+    float ms = max( max( modelScale.x, modelScale.y ), modelScale.z );
+    float cI = abs( dot( n, v ) );                                   // Snell：斜入射光路加长
+    float sI = sqrt( max( 1.0 - cI * cI, 0.0 ) );
+    float sR = min( 1.0, sI / ior );
+    float pathLen = thickness / max( cos( asin( sR ) ), 0.12 );
+    vec3 ray = normalize( refractionVector ) * pathLen * ms;
+    vec3 nW = normalize( mat3( modelMatrix ) * normalize( n ) );     // 楔形权重：仅臂斜面朝向时激活
+    float wedge = 0.165 * ( 1.0 - abs( nW.z ) );                     // V 臂楔角≈9.4°
+    float devLen = ( ior - 1.0 ) * wedge * pathLen * ms;             // δ≈(n−1)A，向楔底（世界+y）
+    vec3 upV = normalize( ( viewMatrix * vec4( 0.0, 1.0, 0.0, 0.0 ) ).xyz );
+    return ray + upV * devLen;
+  }`
+);
+if (!THREE.ShaderChunk.transmission_pars_fragment.includes('wedge')) {
+  console.error('PRISM chunk replace FAILED');   // 校验锚点命中（再不静默）
+}
+vGlass.material.onBeforeCompile = (shader) => {
+  // 全内反射（TIR）：玻璃→空气临界角 40.2°，掠射超临界角的斜面呈镜面反射带
+  shader.fragmentShader = shader.fragmentShader.replace(
+    '#include <opaque_fragment>',
+    `float ndvTIR = clamp( dot( normalize( vViewPosition ), normalize( vNormal ) ), 0.0, 1.0 );
+     float tir = smoothstep( 0.82, 0.72, ndvTIR );
+     totalDiffuse  *= ( 1.0 - tir * 0.7 );
+     totalSpecular *= ( 1.0 + tir * 2.4 );
+     #include <opaque_fragment>`
+  );
+};
+
+// ── 流体烟雾背景（Pavel Dobryakov NS 求解器，离屏渲染 → three 纹理）──
+// 面片在场景最深处 → 进入 transmission 折射缓冲 → 透过玻璃 V 看到折射扭曲的流体
+const fluidCv = document.createElement('canvas');
+fluidCv.width = IS_MOBILE ? 480 : 640; fluidCv.height = IS_MOBILE ? 270 : 360;
+const fluid = window.FluidBG ? new window.FluidBG(fluidCv, { DYE_RESOLUTION: IS_MOBILE ? 256 : 512 }) : null;
+const fluidTex = fluid ? new THREE.CanvasTexture(fluidCv) : null;
+if (fluidTex) fluidTex.colorSpace = THREE.SRGBColorSpace;
+const fluidPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(40, 22.5),
+  new THREE.MeshBasicMaterial({ map: fluidTex })
+);
+fluidPlane.position.z = -9;
+if (fluidTex) scene.add(fluidPlane); else fluidPlane.visible = false;
+let fluidSplatAt = 0;
+
+// ── 三层星河环流：不同半径/倾角/速度绕 V 漂移；不透明 → 进入折射缓冲 ──
+const STAR_LAYERS = IS_MOBILE ? [   // 移动端减负：粒子量减半以上
+  { n: 400, r: 10.5, speed: 0.050, size: 0.048, ySpread: 4.6, zSpread: 5.0 },
+  { n: 250, r: 13.0, speed: 0.030, size: 0.032, ySpread: 6.2, zSpread: 7.0 },
+  { n: 170, r: 16.0, speed: 0.018, size: 0.022, ySpread: 7.8, zSpread: 9.0 },
+] : [
+  { n: 880, r: 10.5, speed: 0.050, size: 0.048, ySpread: 4.6, zSpread: 5.0 },
+  { n: 480, r: 13.0, speed: 0.030, size: 0.032, ySpread: 6.2, zSpread: 7.0 },
+  { n: 360, r: 16.0, speed: 0.018, size: 0.022, ySpread: 7.8, zSpread: 9.0 },
+];
+// vaanai 品牌色彩盘：星河每颗随机取色 + 独立相位闪烁
+const STAR_PALETTE = [
+  [0.0, 0.85, 1.0], [0.42, 0.36, 0.91], [0.97, 0.58, 0.63],
+  [1.0, 0.79, 0.34], [0.28, 0.86, 0.52], [0.62, 0.48, 0.93],
+];
+const starGroup = new THREE.Group();
+scene.add(starGroup);
+const starLayers = STAR_LAYERS.map(L => {
+  const pos = new Float32Array(L.n * 3);
+  const col = new Float32Array(L.n * 3);
+  const ph = new Float32Array(L.n);
+  const base = new Float32Array(L.n * 3);
+  for (let i = 0; i < L.n; i++) {
+    ph[i] = Math.random() * Math.PI * 2;
+    const c = STAR_PALETTE[Math.floor(Math.random() * STAR_PALETTE.length)];
+    base[i*3] = c[0]; base[i*3+1] = c[1]; base[i*3+2] = c[2];
+  }
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+  geo.setAttribute('color', new THREE.BufferAttribute(col, 3));
+  const pts = new THREE.Points(geo, new THREE.PointsMaterial({
+    vertexColors: true, size: L.size, sizeAttenuation: true,
+  }));
+  pts.renderOrder = -10;              // 星河最底层：最先画、永不遮挡任何内容
+  pts.material.depthWrite = false;    // 点星不写深度 → V 折射与卡牌永远压得住
+  pts.userData = { L, ph, base };
+  starGroup.add(pts);
+  return pts;
+});
+let starFrame = 0;
+function updateStars(now) {
+  const colorTick = (starFrame++ % 2) === 0;   // 闪烁色隔帧更新（位置仍逐帧）
+  for (const pts of starLayers) {
+    const { L, ph, base } = pts.userData;
+    const a = pts.geometry.attributes.position;
+    const ca = pts.geometry.attributes.color;
+    for (let i = 0; i < L.n; i++) {
+      const t = ph[i] + now * L.speed;
+      const r = L.r * (0.9 + 0.2 * Math.sin(t * 1.3 + i * 0.7));
+      a.array[i*3]   = Math.cos(t) * r;                                  // 大尺度环流（缓慢横漂）
+      a.array[i*3+1] = Math.sin(t * 0.63 + ph[i] * 2.1) * L.ySpread;    // 大幅纵向起伏 → 全屏覆盖
+      a.array[i*3+2] = Math.sin(t * 0.41 + ph[i]) * L.zSpread - 2.0 - L.zSpread * 0.5;  // 纵深分布：近大远小
+      const flick = 0.55 + 0.45 * Math.sin(now * 1.7 + ph[i] * 5.3);   // vaanai 式闪烁
+      ca.array[i*3] = base[i*3] * flick;
+      ca.array[i*3+1] = base[i*3+1] * flick;
+      ca.array[i*3+2] = base[i*3+2] * flick;
+    }
+    a.needsUpdate = true;
+    if (colorTick) ca.needsUpdate = true;
+  }
+}
+
+// ── 流沙字进 3D：随相机推拉缩放，与 V 同一空间；粒子不透明 → 可被玻璃 V 折射 ──
+const sandTex = new THREE.CanvasTexture(document.getElementById('sandText'));
+sandTex.colorSpace = THREE.SRGBColorSpace;
+const sandPlane = new THREE.Mesh(
+  new THREE.PlaneGeometry(1, 1),
+  new THREE.MeshBasicMaterial({ map: sandTex, alphaTest: 0.35 })
+);
+scene.add(sandPlane);
+let sandFrame = 0;
+
+// ── 卡牌卫星系统 ──
+// ── 卡片主题插图（程序化科技线稿：青金双色、透明底、六项目各一幅）──
+function drawArt(x, name, lit) {
+  const C = lit ? '#ffd98f' : '#8fd8ff';
+  const G = lit ? '#ffb75e' : '#c9a35c';
+  x.save();
+  x.translate(512, 168);
+  x.strokeStyle = C; x.fillStyle = C;
+  x.lineWidth = 4; x.lineJoin = 'round'; x.lineCap = 'round';
+  x.shadowColor = C; x.shadowBlur = lit ? 16 : 9;
+  const rr = (a, b, w, h, r) => { x.beginPath(); x.roundRect(a, b, w, h, r); x.stroke(); };
+  if (name.includes('QQ')) {
+    // 聊天气泡 ↔ 终端：双向消息流
+    rr(-320, -70, 230, 130, 26);
+    x.beginPath(); x.moveTo(-260, 58); x.lineTo(-238, 92); x.lineTo(-212, 58); x.stroke();
+    x.lineWidth = 8; x.beginPath(); x.moveTo(-284, -28); x.lineTo(-126, -28); x.moveTo(-284, 4); x.lineTo(-170, 4); x.stroke();
+    x.lineWidth = 4; rr(70, -95, 260, 190, 14);
+    x.beginPath(); x.moveTo(70, -58); x.lineTo(330, -58); x.stroke();
+    [100, 128, 156].forEach(cx => { x.beginPath(); x.arc(cx, -76, 6, 0, 7); x.stroke(); });
+    x.font = '700 40px "SF Mono", Menlo, monospace';
+    x.fillText('>_', 96, -8);
+    x.lineWidth = 7;
+    x.beginPath(); x.moveTo(96, 30); x.lineTo(290, 30); x.moveTo(96, 62); x.lineTo(230, 62); x.stroke();
+    x.lineWidth = 4; x.setLineDash([10, 12]);
+    x.beginPath(); x.moveTo(-84, -40); x.lineTo(62, -40); x.moveTo(62, 30); x.lineTo(-84, 30); x.stroke();
+    x.setLineDash([]);
+  } else if (name.includes('库存') || name.includes('ERP')) {
+    // 等距货架 + 上升柱状图
+    for (let r = 0; r < 2; r++) {
+      const y0 = -66 + r * 84;
+      x.beginPath(); x.moveTo(-330, y0); x.lineTo(-60, y0 - 44); x.lineTo(-60, y0 + 40); x.lineTo(-330, y0 + 84); x.closePath(); x.stroke();
+      for (let b = 0; b < 3; b++) {
+        const bx = -296 + b * 84, by = y0 + 6 + b * 11;
+        x.strokeRect(bx, by, 52, 30);
+        x.beginPath(); x.moveTo(bx, by); x.lineTo(bx + 16, by - 12); x.lineTo(bx + 68, by - 12); x.lineTo(bx + 52, by); x.stroke();
+      }
+    }
+    const bars = [[52, 60], [128, 105], [204, 150]];
+    bars.forEach(([bx, bh]) => { x.beginPath(); x.moveTo(bx, 96); x.lineTo(bx, 96 - bh); x.stroke(); x.strokeRect(bx - 16, 96 - bh, 32, bh); });
+    x.beginPath(); x.moveTo(20, 40); x.lineTo(120, -6); x.lineTo(220, -60); x.stroke();
+    x.beginPath(); x.moveTo(220, -60); x.lineTo(196, -56); x.moveTo(220, -60); x.lineTo(216, -36); x.stroke();
+    x.strokeStyle = G; x.strokeRect(6, 96, 236, 3);
+  } else if (name.includes('Particle') || name.includes('粒子')) {
+    // 粒子云聚成 "Ai"
+    x.font = '700 190px Georgia, serif';
+    x.strokeStyle = G; x.lineWidth = 3; x.shadowColor = G;
+    x.strokeText('Ai', -88, 66);
+    x.strokeStyle = C; x.fillStyle = C; x.lineWidth = 4;
+    let sd = 7;
+    const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 46; i++) {
+      const a = rnd() * 6.283, r = 90 + rnd() * 220;
+      const px = Math.cos(a) * r * 1.35, py = Math.sin(a) * r * 0.75;
+      x.globalAlpha = 0.35 + rnd() * 0.6;
+      x.beginPath(); x.arc(px, py, 2 + rnd() * 3.5, 0, 7); x.fill();
+    }
+    x.globalAlpha = 1;
+  } else if (name.includes('Slime') || name.includes('史莱姆')) {
+    // 果冻水滴宠物
+    x.beginPath();
+    x.moveTo(0, -108);
+    x.bezierCurveTo(96, -104, 128, -20, 120, 40);
+    x.bezierCurveTo(112, 104, 60, 136, 0, 136);
+    x.bezierCurveTo(-60, 136, -112, 104, -120, 40);
+    x.bezierCurveTo(-128, -20, -96, -104, 0, -108);
+    x.stroke();
+    x.lineWidth = 6; x.shadowBlur = lit ? 12 : 6;
+    x.beginPath(); x.moveTo(-64, -62); x.quadraticCurveTo(-84, -34, -70, -6); x.stroke();
+    x.beginPath(); x.moveTo(-34, 22); x.ellipse(-34, 30, 9, 15, 0, 0, 7); x.stroke();
+    x.beginPath(); x.moveTo(34, 22); x.ellipse(34, 30, 9, 15, 0, 0, 7); x.stroke();
+    x.beginPath(); x.moveTo(-16, 66); x.quadraticCurveTo(0, 80, 16, 66); x.stroke();
+    x.strokeStyle = G; x.lineWidth = 3;
+    x.beginPath(); x.ellipse(0, 152, 96, 14, 0, 0, 7); x.stroke();
+    x.beginPath(); x.arc(96, -128, 12, 0, 7); x.stroke();
+  } else if (name.includes('数字人') || name.includes('Wav2Lip')) {
+    // 侧脸 + 声波 → 视频帧
+    x.beginPath();
+    x.moveTo(-290, -104); x.quadraticCurveTo(-216, -118, -188, -60);
+    x.quadraticCurveTo(-172, -24, -186, -8);
+    x.quadraticCurveTo(-200, 4, -186, 16);
+    x.quadraticCurveTo(-172, 26, -178, 40);
+    x.quadraticCurveTo(-160, 48, -150, 62);
+    x.quadraticCurveTo(-128, 100, -84, 106);
+    x.stroke();
+    x.beginPath(); x.moveTo(-84, 106); x.quadraticCurveTo(-30, 112, 6, 92); x.stroke();
+    x.beginPath(); x.arc(-236, 6, 118, -1.9, 1.6); x.stroke();
+    x.lineWidth = 3.5;
+    x.beginPath();
+    for (let i = 0; i <= 60; i++) {
+      const t = i / 60, wx = 40 + t * 210;
+      const wy = 90 - t * 26 + Math.sin(t * 12.6) * 26 * Math.sin(t * 3.14);
+      i ? x.lineTo(wx, wy) : x.moveTo(wx, wy);
+    }
+    x.stroke();
+    x.lineWidth = 4; x.strokeRect(258, -6, 76, 56);
+    x.lineWidth = 2.5;
+    x.beginPath();
+    for (let i = 0; i <= 16; i++) {
+      const t = i / 16, wx = 266 + t * 60;
+      const wy = 22 + Math.sin(t * 9) * 12 * Math.sin(t * 3.14);
+      i ? x.lineTo(wx, wy) : x.moveTo(wx, wy);
+    }
+    x.stroke();
+  } else {
+    // 节点流程图 + 制图笔
+    rr(-300, -90, 150, 74, 12);
+    x.beginPath(); x.moveTo(-150, -53); x.lineTo(-46, -53); x.stroke();
+    x.beginPath(); x.moveTo(-46, -53); x.lineTo(-60, -59); x.moveTo(-46, -53); x.lineTo(-60, -47); x.stroke();
+    x.beginPath(); x.moveTo(-20, -14); x.lineTo(52, -14); x.lineTo(88, 34); x.lineTo(16, 34); x.closePath(); x.stroke();
+    x.beginPath(); x.moveTo(88, 34); x.lineTo(160, 34); x.stroke();
+    x.beginPath(); x.moveTo(160, 34); x.lineTo(146, 28); x.moveTo(160, 34); x.lineTo(146, 40); x.stroke();
+    rr(166, -2, 148, 72, 12);
+    x.strokeStyle = G;
+    x.save(); x.translate(120, 96); x.rotate(-0.5);
+    x.strokeRect(-9, -84, 18, 96);
+    x.beginPath(); x.moveTo(-9, 12); x.lineTo(0, 34); x.lineTo(9, 12); x.closePath(); x.stroke();
+    x.beginPath(); x.moveTo(-9, -34); x.lineTo(9, -34); x.stroke();
+    x.restore();
+  }
+  x.restore();
+}
+function drawCard(p, lit, mode) {
+  // 透明底纯文字：alphaTest 进折射缓冲（V 可折射出文字），字外区域透出背景
+  // 深色粗描边 + 高分辨率 = 近看也不发雾
+  const c = document.createElement('canvas');
+  c.width = 1024; c.height = 704;
+  const x = c.getContext('2d');
+  x.lineJoin = 'round';
+  // bg 版：卡面最深层底纹（细网格+星点，负视差沉入）——三层深度的最底
+  if (mode === 'bg') {
+    x.strokeStyle = 'rgba(110,160,210,.32)';
+    x.lineWidth = 1.5;
+    for (let gy = 70; gy < 640; gy += 64) { x.beginPath(); x.moveTo(60, gy); x.lineTo(964, gy); x.stroke(); }
+    for (let gx = 92; gx < 940; gx += 64) { x.beginPath(); x.moveTo(gx, 60); x.lineTo(gx, 650); x.stroke(); }
+    x.fillStyle = 'rgba(150,205,255,.5)';
+    let sd = 3;
+    const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let s = 0; s < 26; s++) {
+      x.globalAlpha = 0.2 + rnd() * 0.5;
+      x.beginPath(); x.arc(70 + rnd() * 884, 70 + rnd() * 564, 1.5 + rnd() * 2.5, 0, 7); x.fill();
+    }
+    x.globalAlpha = 1;
+    return c;
+  }
+  // art 版：金框 + 主题插图（沉入卡内 z=-0.02，与浮面文字构成真实分层——翻转时透视错位）
+  if (mode === 'art') {
+    x.strokeStyle = lit ? '#ffd27a' : '#c9a35c';
+    x.lineWidth = 10;
+    x.shadowColor = lit ? 'rgba(255,205,120,.7)' : 'rgba(200,215,255,.35)';
+    x.shadowBlur = lit ? 26 : 12;
+    x.beginPath(); x.roundRect(18, 18, 988, 668, 44); x.stroke();
+    x.shadowBlur = 0;
+    drawArt(x, p.name, lit);
+    return c;
+  }
+  // ghost 版：纯金框无底（alphaTest 进折射缓冲）——透过 V 折射出金框即卡牌存在感，
+  // 框内零遮挡（背景/V 透过卡牌），框上无文字（不产生镜面复制伪影）
+  if (mode === 'ghost') {
+    x.strokeStyle = lit ? '#ffcf76' : '#caa45e';
+    x.lineWidth = 26;
+    x.beginPath(); x.roundRect(24, 24, 976, 656, 46); x.stroke();
+    return c;
+  }
+  const OUT = 'rgba(12,17,32,.92)';
+  // 金色圆角边框（lit 态更亮）
+  if (lit) { x.shadowColor = 'rgba(255,205,120,.7)'; x.shadowBlur = 30; }
+  x.strokeStyle = lit ? '#ffd27a' : '#c9a35c';
+  x.lineWidth = 10;
+  x.beginPath(); x.roundRect(18, 18, 988, 668, 44); x.stroke();
+  // 插图（主题线稿）+ 标题 + 描述（两行截断）+ 标签：图上字下
+
+  x.font = '700 84px -apple-system, "PingFang SC", sans-serif';
+  x.strokeStyle = OUT; x.lineWidth = 13;
+  x.strokeText(p.name, 64, 388);
+  x.fillStyle = lit ? '#ffe2a0' : '#f8d78e';
+  x.fillText(p.name, 64, 388);
+  x.font = '42px -apple-system, "PingFang SC", sans-serif';
+  x.lineWidth = 9;
+  x.fillStyle = lit ? '#eef5ff' : '#d9e5f8';
+  let line = '', yy = 470; const lines = [];
+  for (const ch of p.desc) {
+    if (x.measureText(line + ch).width > 880) { lines.push(line); line = ch; }
+    else line += ch;
+  }
+  lines.push(line);
+  if (lines.length > 2) { lines.length = 2; lines[1] = lines[1].slice(0, -1) + '…'; }
+  lines.forEach((ln, i) => { x.strokeText(ln, 64, yy + i * 62); x.fillText(ln, 64, yy + i * 62); });
+  // 标签
+  x.shadowBlur = 0;
+  x.font = '600 36px -apple-system, sans-serif';
+  x.lineWidth = 8;
+  let tx = 64;
+  p.tags.forEach(t => {
+    const s = t.toUpperCase();
+    x.strokeStyle = OUT;
+    x.strokeText(s, tx, 632);
+    x.fillStyle = lit ? '#ffd98f' : '#9dbde2';
+    x.fillText(s, tx, 632);
+    tx += x.measureText(s).width + 44;
+  });
+  return c;
+}
+
+const orbit = new THREE.Group();
+orbit.rotation.x = 0.20;
+orbit.position.y = -0.3;
+orbit.position.x = 2.4;          // 卡环随 V 右移，整片玻璃系统居右
+scene.add(orbit);
+let ORBIT_R = 2.32, CW = 1.9, CH = 1.3;
+// 玻璃卡共享材质：与 V 同族的 transmission 透明玻璃，真实厚度边
+// transmission 物体互相不可见（都不进折射缓冲）→ 透过卡牌看不到 V。
+// 改真半透明混合：transparent 在 V(transmission) 之后渲染，V 直接透出；
+// 高光/环境反射保留玻璃质感（薄玻璃折射本就微小，舍弃折射换正确的透视关系）
+const cardGlassMat = new THREE.MeshPhysicalMaterial({
+  transparent: true, opacity: 0.26, depthWrite: false,
+  roughness: 0.06, metalness: 0, color: 0xdff0ff,
+  envMapIntensity: 1.1, clearcoat: 0.6, clearcoatRoughness: 0.08,
+  side: THREE.FrontSide,
+});
+// ── 插图层视差材质（holo-card-studio parallax 移植）：uScale 放大留采样余量，
+// uView 正向偏移（depth+0.35）→ 图案随视角浮出卡面；出界保护 inside()
+function makeParallaxArtMat(map, opaque, depth, foilMix) {
+  return new THREE.ShaderMaterial({
+    transparent: !opaque, depthWrite: false,
+    uniforms: { map: { value: map }, uView: { value: new THREE.Vector3(0, 0, 1) },
+                uDepth: { value: depth }, uScale: { value: 1.18 },
+                uOpaque: { value: opaque ? 1 : 0 }, uFoilMix: { value: foilMix } },
+    vertexShader: `varying vec2 vUv;
+      void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `precision highp float;
+      varying vec2 vUv;
+      uniform sampler2D map;
+      uniform vec3 uView;
+      uniform float uDepth, uScale, uOpaque, uFoilMix;
+      float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+      float noise(vec2 p){
+        vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+        return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+      }
+      vec3 spectrum(float t){
+        t = fract(t);
+        vec3 pink = vec3(1., .32, .62), yellow = vec3(1., .85, .32), blue = vec3(.22, .62, 1.);
+        if (t < .35) return mix(pink, yellow, t / .35);
+        if (t < .7) return mix(yellow, blue, (t - .35) / .35);
+        return mix(blue, vec3(1.), (t - .7) / .3);
+      }
+      vec3 overlay(vec3 b, vec3 f){ return mix(2. * b * f, 1. - 2. * (1. - b) * (1. - f), step(vec3(.5), b)); }
+      float inside(vec2 p){ return step(0., p.x) * step(0., p.y) * step(p.x, 1.) * step(p.y, 1.); }
+      // 区域化光栅（真实衍射感）：3×3 单元各自条纹取向 → 彩虹呈块状图案化流动
+      float gratingWave(vec2 uv){
+        vec2 cell = floor(uv * 3.);
+        float ga = hash(cell * 7.31) * 6.283;
+        float ca = cos(ga), sa = sin(ga);
+        vec2 g = uv - .5;
+        vec2 rp = vec2(ca * g.x - sa * g.y, sa * g.x + ca * g.y);
+        vec2 drift = rp + uView.xy * 2.4;
+        float w = .5 + .5 * sin((drift.x * .848 - drift.y * .530) * 6.283 * 1.2 + 7. * noise(uv * 1.5));
+        return floor(w * 6.) / 6.;   // 量化：衍射级次的锐利色带
+      }
+      void main(){
+        // 原版公式：(p-.5)*scale+.5 + uView.xy/|uView.z| * depth*.14
+        vec2 su = (vUv - .5) * uScale + .5 + uView.xy / max(abs(uView.z), .35) * uDepth * .14;
+        vec4 c = texture2D(map, clamp(su, 0., 1.));
+        c.a *= inside(su);
+        // 内容镀镭（原版核心，此前漏移植）：spectrum 以 overlay 混入图案颜色本身
+        float w = gratingWave(vUv);
+        vec3 foil = spectrum(w * .8 + noise(vUv * 5.) * .12);
+        c.rgb = mix(c.rgb, overlay(c.rgb, foil), uFoilMix);
+        if (uOpaque > .5 && c.a < .3) discard;   // alphaTest 版（进折射缓冲）
+        gl_FragColor = vec4(c.rgb, uOpaque > .5 ? 1. : c.a);
+      }`,
+  });
+}
+// ── 镭射流光膜（holo-card-studio 移植，MIT）：视角驱动的干涉波纹 + 扫光带 + Voronoi 星闪 ──
+const holoMatBase = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uTime: { value: 0 }, uFoil: { value: 0.85 }, uView: { value: new THREE.Vector3(0, 0, 1) },
+               uSway: { value: 0 }, uGlint: { value: 0 }, uGlintCol: { value: new THREE.Color(1, 1, 1) },
+               tArt: { value: (() => {
+                 const t = new THREE.DataTexture(new Uint8Array([255, 255, 255, 255]), 1, 1);
+                 t.needsUpdate = true; return t;
+               })() } },
+  vertexShader: `varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+  fragmentShader: `precision highp float;
+    varying vec2 vUv;
+    uniform float uTime, uFoil, uSway, uGlint;
+    uniform vec3 uView, uGlintCol;
+    uniform sampler2D tArt;
+    float hash(vec2 p){ return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
+    float noise(vec2 p){
+      vec2 i = floor(p), f = fract(p); f = f * f * (3. - 2. * f);
+      return mix(mix(hash(i), hash(i + vec2(1, 0)), f.x), mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), f.x), f.y);
+    }
+    // holo 三段色带：粉→黄→蓝→白循环（闪卡的镭射配色，非全彩）
+    vec3 spectrum(float t){
+      t = fract(t);
+      vec3 pink = vec3(1., .32, .62), yellow = vec3(1., .85, .32), blue = vec3(.22, .62, 1.);
+      if (t < .35) return mix(pink, yellow, t / .35);
+      if (t < .7) return mix(yellow, blue, (t - .35) / .35);
+      return mix(blue, vec3(1.), (t - .7) / .3);
+    }
+    // 区域化干涉波纹（真实衍射光栅的分区取向）：彩虹呈块状图案化流动，非均匀条纹
+    float wave(vec2 p){
+      vec2 cell = floor(p * 3.);
+      float ga = hash(cell * 7.31) * 6.283;
+      float ca = cos(ga), sa = sin(ga);
+      vec2 g = p - .5;
+      vec2 rp = vec2(ca * g.x - sa * g.y, sa * g.x + ca * g.y);
+      vec2 a = rp + uView.xy * 2.4;
+      return .5 + .5 * sin((a.x * .848 - a.y * .530) * 6.283 * 1.5 + 7. * noise(a * 1.5));
+    }
+    // Voronoi 星闪：F2-F1 边缘亮线 + 90% 稀疏 + 时间/视角双驱动明灭
+    float star(vec2 p){
+      vec2 q = p * 105., id = floor(q), f = fract(q);
+      float first = 9., second = 9.;
+      for (int y = -1; y <= 1; y++) for (int x = -1; x <= 1; x++) {
+        vec2 g = vec2(float(x), float(y));
+        vec2 o = vec2(hash(id + g), hash(id + g + 43.3));
+        float d = length(g + o - f);
+        if (d < first) { second = first; first = d; } else second = min(second, d);
+      }
+      float edge = 1. - smoothstep(.01, .035, second - first);
+      float sparse = step(.90, hash(id + 8.8));
+      float twinkle = pow(.5 + .5 * sin(uTime * 1.8 + hash(id) * 30. + uView.x * 27. + uView.y * 21.), 6.);
+      return edge * sparse * twinkle;
+    }
+    void main(){
+      float w = wave(vUv);
+      // 衍射级次感：色带量化（锐利边界而非平滑渐变）+ 银色箔片基底
+      float wq = floor(w * 6.) / 6.;
+      vec3 foil = mix(vec3(.72, .75, .8), spectrum(wq), .78);
+      // 扫光带：视角移动拉出的窄条高光（峰值近白）
+      float sweep = pow(max(0., sin((vUv.x * .83 + vUv.y * .35 + uView.x * 1.8 + uView.y * .9) * 6.283)), 12.);
+      // 镜面明暗闪变：真实镭射箔随转动整体亮起-熄灭（大动态范围）
+      float lobe = .16 + .84 * pow(.5 + .5 * sin(uSway * 2.2 + w * .8), 3.);
+      // 图案化镭射：流光跟着印刷图案走（真实闪卡的星星/logo 形镭射区），空白处仅余微光
+      float artMask = texture2D(tArt, vUv).a;   // 默认白 1×1 = 全通过，clone 时绑本卡插图
+      float patterned = .12 + .88 * artMask;
+      vec3 glow = (foil * (0.14 + sweep * 0.95) * patterned + vec3(.66, .86, 1.) * star(vUv) * (.3 + .7 * artMask)) * uFoil * lobe
+        + uGlintCol * uGlint * (0.3 + 0.7 * artMask);   // 光源反射像：真实镜面几何的白亮光斑
+      // 边缘羽化，不出卡面
+      vec2 e = smoothstep(vec2(0.), vec2(.05), vUv) * smoothstep(vec2(0.), vec2(.05), 1. - vUv);
+      gl_FragColor = vec4(glow * e.x * e.y, 1.0);
+    }`,
+});
+const cardBoxGeo = new THREE.BoxGeometry(CW, CH, 0.1);
+// 玻璃覆膜卡结构：不透明完整卡面在后（进折射缓冲，V 可折射出文字），
+// transmission 玻璃盒在前（隔玻璃看字的单一折射像——物理正确，无重影）
+const faceGeo = new THREE.PlaneGeometry(CW * 0.98, CH * 0.98);
+const cards = PROJECTS.map((p, i) => {
+  const tex = new THREE.CanvasTexture(drawCard(p, false, 'text'));
+  const ghost = new THREE.CanvasTexture(drawCard(p, false, 'ghost'));
+  const artTex = new THREE.CanvasTexture(drawCard(p, false, 'art'));
+  const bgTex = new THREE.CanvasTexture(drawCard(p, false, 'bg'));
+  tex.colorSpace = ghost.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = ghost.anisotropy = 8;
+  const g = new THREE.Group();
+  // 金框折射面（alphaTest → 恒进折射缓冲）：V 折射出金框=卡牌存在感，框内全透
+  const backer = new THREE.Mesh(faceGeo, new THREE.MeshBasicMaterial({ map: ghost, alphaTest: 0.3 }));
+  backer.position.z = -0.056;
+  g.add(backer);
+  // 文字双面制：卡在 V 后方 → textO(alphaTest·进缓冲) 透过 V 折射出文字；
+  //             卡在 V 前方 → textT(transparent·不进缓冲) 镜面伪影无从产生
+  const textO = new THREE.Mesh(faceGeo, new THREE.MeshBasicMaterial({ map: tex, alphaTest: 0.3 }));
+  textO.position.z = -0.052;
+  g.add(textO);
+  g.add(new THREE.Mesh(cardBoxGeo, cardGlassMat));   // 半透明玻璃（透出 V 与背景）
+  const textT = new THREE.Mesh(faceGeo,
+    new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false }));
+  textT.position.z = 0.052;
+  g.add(textT);
+  // 镭射流光膜叠在卡面之上：公转/翻转时 uView 连续变化 → 流光自动扫过
+  const holo = new THREE.Mesh(faceGeo, holoMatBase.clone());
+  holo.material.uniforms.tArt = { value: artTex };   // 图案化镭射 mask：本卡插图
+  holo.position.z = 0.058;
+  g.add(holo);
+  g.userData.holo = holo;
+  // 三层深度（原版视差语义的物理版）：底纹沉底（z=-0.03）· 插图浮出（z=+0.02，带 UV 视差）· 文字最前（z=+0.052）
+  const bgO = new THREE.Mesh(faceGeo, makeParallaxArtMat(bgTex, true, -0.22, 0.2));
+  bgO.position.z = -0.03; bgO.visible = false;
+  g.add(bgO);
+  const bgT = new THREE.Mesh(faceGeo, makeParallaxArtMat(bgTex, false, -0.22, 0.2));
+  bgT.position.z = -0.03;
+  g.add(bgT);
+  const artO = new THREE.Mesh(faceGeo, makeParallaxArtMat(artTex, true, 0.35, 0.45));
+  artO.position.z = 0.02; artO.visible = false;
+  g.add(artO);
+  const artT = new THREE.Mesh(faceGeo, makeParallaxArtMat(artTex, false, 0.35, 0.45));
+  artT.position.z = 0.02;
+  g.add(artT);
+  // 不可见拾取代理（topo 大屏实践）：略大于卡面的透明盒，只扩 hit 区不画像素
+  const pickProxy = new THREE.Mesh(
+    new THREE.BoxGeometry(CW + 0.24, CH + 0.24, 0.5),
+    new THREE.MeshBasicMaterial({ colorWrite: false, depthWrite: false }));
+  pickProxy.renderOrder = -5;
+  g.add(pickProxy);
+  textO.visible = false;
+  g.userData = { ang: i / PROJECTS.length * Math.PI * 2, i, p, lit: false,
+                 matO: textO.material, matT: textT.material, textO, textT, backer,
+                 artO, artT, artMatO: artO.material, artMatT: artT.material,
+                 bgO, bgT, bgMatO: bgO.material, bgMatT: bgT.material };
+  orbit.add(g);
+  return g;
+});
+const texCache = new Map();
+function setLit(m, lit) {
+  const d = m.userData;
+  if (!!d.lit === lit) return;
+  d.lit = lit;
+  const key = (lit ? 'L' : 'N') + d.i;
+  let t = texCache.get(key);
+  if (!t) { t = new THREE.CanvasTexture(drawCard(d.p, lit, 'text')); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; texCache.set(key, t); }
+  let ta = texCache.get(key + 'a');
+  if (!ta) { ta = new THREE.CanvasTexture(drawCard(d.p, lit, 'art')); ta.colorSpace = THREE.SRGBColorSpace; ta.anisotropy = 8; texCache.set(key + 'a', ta); }
+  d.matO.map = t; d.matT.map = t;
+  d.artMatO.map = ta; d.artMatT.map = ta;
+}
+
+// ── 响应式布局：PC 右移避开左侧流沙字；窄屏落到下半屏（流沙字在上 44vh）──
+let LAY = {};
+function layout() {
+  const narrow = innerWidth <= 860;
+  const landscape = narrow && innerWidth > innerHeight;   // 手机横屏：矮而宽
+  if (landscape) {
+    LAY = { vx: 3.1, vy: 0.05, oy: -0.35, R: 2.05, cardScale: 0.9,
+            sand: { x: -3.7, y: 0, w: 6.4, h: 8.7 },
+            sandDock: { x: 0.5, y: 0.15, w: 13, h: 17.6, z: -6 },
+            zMin: 7.5, zMax: 12.5, camXNear: 1.9, camXFar: 0, lookY: 0.05,
+            vxDock: 0.5, vYDock: 0.35,
+            dock: { x: [-7.3, -5.55, -3.8, -2.05, -0.3, 1.45],
+                    y: [-1.75, -1.75, -1.75, -1.75, -1.75, -1.75], z: 1.6 } };
+    camera.position.set(1.9, 0.1, 9.2);
+    camera.lookAt(1.9, 0.05, 0);
+  } else if (narrow) {
+    LAY = { vx: 0, vy: -1.45, oy: -1.9, R: 1.88, cardScale: 0.84,
+            sand: { x: 0, y: 3.46, w: 4.8, h: 4.57 },
+            sandDock: { x: 0, y: 0.6, w: 8.2, h: 7.8, z: -6 },
+            zMin: 10.0, zMax: 14.0, camXNear: 0, camXFar: 0, lookY: 0.3,
+            vxDock: 0, vYDock: 0.6,
+            dock: { x: [-1.78, 0, 1.78, -1.78, 0, 1.78],
+                    y: [0.05, 0.05, 0.05, -1.45, -1.45, -1.45], z: 1.63 } };
+    camera.position.set(0, 0.3, 10.8);
+    camera.lookAt(0, 0.3, 0);
+  } else {
+    LAY = { vx: 4.3, vy: 0.15, oy: -0.3, R: 2.32, cardScale: 1.16,   // 卡牌随 V 同步放大
+            sand: { x: -4.23, y: 0, w: 7.2, h: 9.79 },
+            sandDock: { x: 0.6, y: 0.3, w: 17, h: 23.1, z: -6 },
+            zMin: 8.0, zMax: 13.0, camXNear: 2.55, camXFar: 0.0, lookY: 0.4,
+            vxDock: 0.6, vYDock: 0.5,
+            dock: { x: [-9.8, -7.44, -5.08, -2.72, -0.36, 2.0],
+                    y: [-2.2, -2.2, -2.2, -2.2, -2.2, -2.2], z: 2.0 } };
+    camera.position.set(2.55, 0.4, 7.6);
+    camera.lookAt(2.4, -0.1, 0);
+  }
+  camera.aspect = innerWidth / innerHeight;
+  camera.setViewOffset(innerWidth, innerHeight, 0, innerHeight * 0.05, innerWidth, innerHeight);  // offsetY 正值=取景下移 → 画面整体上移 ~5%（上轮方向写反了）
+  camera.updateProjectionMatrix();
+  vGlass.position.x = LAY.vx;
+  orbit.position.x = LAY.vx;
+  orbit.position.y = LAY.oy;
+  ORBIT_R = LAY.R;
+  for (const m of cards) m.scale.setScalar(LAY.cardScale);
+  sandPlane.position.set(LAY.sand.x, LAY.sand.y, -4.5);
+  sandPlane.scale.set(LAY.sand.w, LAY.sand.h, 1);
+}
+
+// ── 交互状态 ──
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2(9, 9);
+const mouseW = new THREE.Vector3();
+let orbAngle = 0, litI = -1, hoverM = null, dragging = false, dragX = 0, hasMouse = false;
+let dockTarget = 0, dockBlend = 0;
+const _p1 = new THREE.Vector3(), _p2 = new THREE.Vector3(), _wp = new THREE.Vector3();
+const _im = new THREE.Matrix4();
+const _sway = new THREE.Vector3();
+let lastCamInputAt = -1e9;
+const _nrm = new THREE.Vector3(), _vd = new THREE.Vector3(),
+      _tl = new THREE.Vector3(), _rfl = new THREE.Vector3();
+const smooth = x => x * x * (3 - 2 * x);
+
+let modalOpen = false;
+function openModal(i) {
+  modalOpen = true;
+  const p = PROJECTS[i];
+  document.getElementById('mTitle').textContent = p.name;
+  document.getElementById('mHow').textContent = p.how;
+  document.getElementById('mHi').textContent = p.hi;
+  document.getElementById('mStack').textContent = p.stack;
+  const mv = document.getElementById('mVideo');
+  mv.src = p.video; mv.play().catch(() => {});
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  modalOpen = false;
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('mVideo').pause();
+}
+document.getElementById('mClose').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// 交互事件
+const dom = renderer.domElement;
+// 缩放统一入口：wheel（PC）/ pinch（手机双指）/ 双击远眺 共用，含运镜
+function setZoom(z) {
+  lastCamInputAt = performance.now();
+  camera.position.z = clamp(z, LAY.zMin, LAY.zMax);
+  const t = (camera.position.z - LAY.zMin) / (LAY.zMax - LAY.zMin);
+  const cx = LAY.camXNear + (LAY.camXFar - LAY.camXNear) * t;
+  camera.position.x = cx;
+  camera.lookAt(cx, LAY.lookY, 0);
+}
+// 多指追踪（pinch 缩放）+ 单指拖拽互斥 + click 移动阈值（拖转环松手不误开 modal）
+const touches = new Map();
+let pinchDist = 0, downX = 0, downY = 0, movedPx = 0;
+let lastTapAt = 0, lastTapX = 0, lastTapY = 0, suppressClick = false;
+const tDist = () => {
+  const [a, b] = [...touches.values()];
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
+};
+dom.addEventListener('pointermove', e => {
+  hasMouse = true;
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+  // 鼠标搅动流体：移动即注入染料与动量
+  if (fluid && Math.abs(e.movementX) + Math.abs(e.movementY) > 2) {
+    const c = fluid.generateColor();
+    c.r *= 1.8; c.g *= 1.8; c.b *= 1.8;
+    fluid.splat((ndc.x + 1) / 2, (ndc.y + 1) / 2,
+      e.movementX * 3, e.movementY * 3, c);
+  }
+  if (touches.has(e.pointerId)) {
+    touches.set(e.pointerId, [e.clientX, e.clientY]);
+    movedPx = Math.max(movedPx, Math.hypot(e.clientX - downX, e.clientY - downY));
+    if (touches.size === 2) {   // 双指捏合：分开=推近，捏拢=拉远
+      const d = tDist();
+      if (pinchDist) setZoom(camera.position.z - (d - pinchDist) * 0.022);
+      pinchDist = d;
+    }
+  }
+  if (dragging) { orbAngle += (e.clientX - dragX) * 0.005; dragX = e.clientX; }
+});
+dom.addEventListener('pointerdown', e => {
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  downX = e.clientX; downY = e.clientY; movedPx = 0;
+  if (touches.size === 1) { dragging = true; dragX = e.clientX; }
+  else { dragging = false; pinchDist = touches.size === 2 ? tDist() : 0; }
+});
+addEventListener('pointerup', e => {
+  touches.delete(e.pointerId);
+  if (touches.size < 2) pinchDist = 0;
+  if (touches.size === 0) dragging = false;
+  // 手动双击检测（iOS 触屏不派发 dblclick——远眺切换会"卡死"在这类设备上）
+  const tNow = performance.now();
+  if (tNow - lastTapAt < 320 && Math.hypot(e.clientX - lastTapX, e.clientY - lastTapY) < 32) {
+    suppressClick = true;
+    setTimeout(() => suppressClick = false, 400);
+    const zt = (camera.position.z - LAY.zMin) / (LAY.zMax - LAY.zMin);
+    setZoom(zt > 0.5 ? LAY.zMin : LAY.zMax);
+    lastTapAt = 0;
+  } else {
+    lastTapAt = tNow; lastTapX = e.clientX; lastTapY = e.clientY;
+  }
+});
+addEventListener('pointercancel', e => { touches.delete(e.pointerId); dragging = false; pinchDist = 0; });
+dom.addEventListener('click', e => {
+  if (movedPx > 8 || suppressClick) return;   // 拖拽/捏合/双击后的松手不算点击
+  // tap 没有 pointermove → ndc 停在旧值会点不中：用事件坐标现算
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(cards, true)[0];   // cards 是 Group（玻璃盒+文字面），需递归
+  if (!hit) return;
+  let o = hit.object;
+  while (o && o.userData.i === undefined) o = o.parent;     // 命中子网格 → 上爬到卡牌组
+  if (o) openModal(o.userData.i);
+});
+dom.addEventListener('wheel', e => setZoom(camera.position.z + e.deltaY * 0.004), { passive: true });
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') spinTo((litI < 0 ? 0 : litI) + 1);
+  if (e.key === 'ArrowLeft') spinTo((litI < 0 ? 0 : litI) + PROJECTS.length - 1);
+});
+function spinTo(i) { i %= PROJECTS.length; orbAngle = -i / PROJECTS.length * Math.PI * 2; }
+function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+// ── 主循环 ──
+layout();   // 先于首帧：tick 依赖 LAY（旧版在文件尾调用导致首帧 LAY 为空）
+document.getElementById('hint').textContent =
+  innerWidth <= 860 ? '拖动旋转 · 双指缩放 · 双击远眺 · 点卡深入'
+                    : '拖拽旋转 · 滚轮推拉 · 双击远眺 · 点击卡牌深入';
+const clock = new THREE.Clock();
+let curVid = null;
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const now = clock.elapsedTime;
+  if (!dragging) orbAngle += dt * 0.12;
+
+  // 章节化旋转：拖拽/滚轮期间停自动公转
+  const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  let bi = -1, bf = -2;
+  cards.forEach((m, i) => {
+    const wp = new THREE.Vector3(); m.getWorldPosition(wp);
+    const toC = wp.clone().sub(camera.position).normalize();
+    const f = toC.dot(camDir.clone().negate());
+    if (f > bf) { bf = f; bi = i; }
+  });
+  if (bi !== litI) {
+    litI = bi;
+    document.querySelectorAll('#dots button').forEach((d, k) => d.classList.toggle('act', k === litI));
+  }
+
+  // 卡位姿：环上公转 ↔ 底部 dock 栏，两态插值（stagger 依次飞离/归队）
+  for (const m of cards) {
+    const i = cards.indexOf(m);
+    const a = m.userData.ang + orbAngle;
+    _p1.set(Math.sin(a) * ORBIT_R, Math.sin(a*2) * 0.08, Math.cos(a) * ORBIT_R);
+    _p2.set(LAY.dock.x[i], LAY.dock.y[i] + Math.sin(now * 0.8 + i) * 0.05, LAY.dock.z);
+    const b = smooth(clamp(dockBlend * 1.5 - i * 0.085, 0, 1));
+    m.position.lerpVectors(_p1, _p2, b);
+    const look = new THREE.Vector3(camera.position.x, m.position.y, camera.position.z);
+    m.lookAt(look);
+    m.rotateY(Math.sin(now * 0.6 + i * 1.3) * (0.45 * (1 - b) + 0.12 * b));   // 翻转：常态±26°，dock 态保留微摆
+    m.rotateX(Math.sin(now * 0.43 + i * 0.8) * (0.14 * (1 - b) + 0.03 * b));  // 俯仰：彩虹纵向流动
+    // 镭射膜动态视角（关键修复）：卡是 billboard（永远正对相机）→ 几何 uView 恒为 (0,0,1)，
+    // 原版的"翻转驱动流光"无从谈起。改为合成视角：公转相位 + 时间慢漂 + 鼠标位置，
+    // 等效于卡在手里持续转动 → 波纹/扫光常流不断
+    if (m.userData.holo) {
+      const hm = m.userData.holo.material;
+      hm.uniforms.uTime.value = now;
+      const a2 = m.userData.ang + orbAngle;
+      const sway = Math.sin(now * 0.6 + i * 1.3) * (0.45 * (1 - b) + 0.12 * b);   // 与 rotateY 同相位
+      hm.uniforms.uSway.value = sway;
+      // 膜面呼吸（smootherstep 缓动，topo 大屏实践同款）：慢周期调制流光强度，
+      // 二阶导在端点为零 → 起停无感，静置时镭射也有"活着"的明暗节律
+      const brT = 0.5 + 0.5 * Math.sin(now * 0.45 + i * 1.7);
+      const br = brT * brT * brT * (brT * (brT * 6 - 15) + 10);
+      hm.uniforms.uFoil.value = 0.85 * (0.84 + 0.16 * br);
+      // 光源反射像：reflect(入射, 法线) · 指向光源 → 亮斑强度（真实镜面几何，非公式扫光）
+      m.updateMatrixWorld(true);
+      _nrm.set(0, 0, 1).transformDirection(m.userData.holo.matrixWorld);
+      _vd.copy(camera.position).sub(_wp).normalize();
+      _tl.copy(mouseL.position).sub(_wp).normalize();
+      _rfl.copy(_vd).negate().reflect(_nrm);
+      hm.uniforms.uGlint.value = modalOpen ? 0 : Math.pow(Math.max(0, _rfl.dot(_tl)), 60);
+      hm.uniforms.uGlintCol.value.copy(mouseL.color);
+      // 同一动态视角喂给镭射膜与插图视差层
+      hm.uniforms.uView.value.set(
+        Math.sin(a2 + now * 0.18) * 0.5 + ndc.x * 0.4 + sway * 0.65,
+        Math.cos(a2 * 0.7 + now * 0.12) * 0.34 - ndc.y * 0.3,
+        1
+      ).normalize();
+      m.userData.artMatO.uniforms.uView.value.copy(hm.uniforms.uView.value);
+      m.userData.artMatT.uniforms.uView.value.copy(hm.uniforms.uView.value);
+      m.userData.bgMatO.uniforms.uView.value.copy(hm.uniforms.uView.value);
+      m.userData.bgMatT.uniforms.uView.value.copy(hm.uniforms.uView.value);
+    }
+    // 前后切换（文字+金框同步）：卡在 V 后方 → 进折射缓冲（透过 V 折射出完整卡牌）；
+    // 卡在 V 前方 → 缓冲中无任何该卡成分，屏幕空间采样无从复制 → 镜面伪影绝迹
+    const wz = m.getWorldPosition(_wp).z;
+    if (wz < -0.8) {        // 后方：金框+底纹+插图+文字进折射缓冲
+      m.userData.textT.visible = false; m.userData.textO.visible = true; m.userData.backer.visible = true;
+      m.userData.artT.visible = false; m.userData.artO.visible = true;
+      m.userData.bgT.visible = false; m.userData.bgO.visible = true;
+    } else if (wz > -0.15) { // 前方：缓冲中零成分（幂等赋值，覆盖初始态）
+      m.userData.textO.visible = false; m.userData.textT.visible = true; m.userData.backer.visible = false;
+      m.userData.artO.visible = false; m.userData.artT.visible = true;
+      m.userData.bgO.visible = false; m.userData.bgT.visible = true;
+    }
+  }
+
+  // V 自转（绕 Y）+ 固定侧身（绕 X 展示厚度）；dock 态放大并移向构图中心
+  const e = smooth(dockBlend);
+  vGlass.rotation.y = now * 0.25;
+  vGlass.rotation.x = -0.22;
+  vGlass.position.x = LAY.vx + (LAY.vxDock - LAY.vx) * e;
+  vGlass.position.y = LAY.vy + (LAY.vYDock - LAY.vy) * e + Math.sin(now * 0.7) * 0.07;
+  vGlass.scale.setScalar(1.18 + 0.5 * e);   // 常态即 1.18×：填充右侧纵向空间
+  // 星河挂相机平移：zoom 时相对距离恒定 → 屏幕尺寸不随缩放变化（无限远背景），
+  // 层内 z 分布仍提供近大远小
+  starGroup.position.set(camera.position.x, camera.position.y, camera.position.z - 7);
+  // 流沙字面片：常态按当前相机视锥屏幕锚定（PC 字形居左 62% 屏宽、手机居上 95%
+  // 屏宽），任何 zoom 下屏占比恒定且不越界；dock 态插值到 V 正后方居中放大
+  {
+    const sdist = camera.position.z + 4.5;
+    const shh = Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * sdist;
+    const shw = shh * camera.aspect;
+    const imgAR = sandTex.image.width / sandTex.image.height;
+    let ax, ay, aw;
+    if (innerWidth <= 860) {
+      aw = 0.95 * 2 * shw / 0.9;            // 字形 ≈95% 屏宽
+      ax = camera.position.x;
+      ay = camera.position.y + 0.56 * shh;  // 字形中心 ≈ 屏幕 22vh
+    } else {
+      aw = 0.50 * 2 * shw / 0.9;            // 字形 ≈50% 屏宽（右缘 55vw < 卡牌区 64vw）
+      ax = camera.position.x - 0.30 * shw;  // 字形中心 ≈ 屏幕 30vw
+      ay = camera.position.y;
+    }
+    const ah = aw / imgAR;
+    sandPlane.position.set(
+      ax + (LAY.sandDock.x - ax) * e,
+      ay + (LAY.sandDock.y - ay) * e,
+      -4.5 + (LAY.sandDock.z + 4.5) * e
+    );
+    sandPlane.scale.set(
+      aw + (LAY.sandDock.w - aw) * e,
+      ah + (LAY.sandDock.h - ah) * e, 1
+    );
+  }
+
+  updateStars(now);
+
+  // 流体：步进 → 纹理上传 → 面片贴住相机视野（永远铺满背景）
+  if (fluid) {
+    fluid.update(dt);
+    fluidTex.needsUpdate = true;
+    fluidPlane.position.x = camera.position.x;
+    fluidPlane.position.y = camera.position.y;
+    if (now - fluidSplatAt > 2.8) {   // 低频单发：慢烟雾不频繁搅动
+      fluidSplatAt = now;
+      const c = fluid.generateColor();
+      c.r *= 1.8; c.g *= 1.8; c.b *= 1.8;
+      fluid.splat(0.15 + Math.random() * 0.7, 0.15 + Math.random() * 0.7,
+        40 * (Math.random() - 0.5), 40 * (Math.random() - 0.5), c);
+    }
+  }
+
+  // ── 缩放端状态机：拉远到极限 → 卡牌依次飞离环、排入界面下方，V 放大移中 ──
+  const zt = (camera.position.z - LAY.zMin) / (LAY.zMax - LAY.zMin);
+  if (zt > 0.78) dockTarget = 1; else if (zt < 0.60) dockTarget = 0;
+  dockBlend += (dockTarget - dockBlend) * 0.045;
+
+  // 点光跟随鼠标：命中玻璃 V 时光源贴到命中点前方 0.8（高光贴面流动），
+  // 未命中则悬在视线上 4.4 处（vgpu transmission 案例思路：亮感靠表面高光而非提亮透射）
+  const mRC = new THREE.Raycaster();
+  mRC.setFromCamera(ndc, camera);
+  const vHit = (hasMouse && !modalOpen) ? mRC.intersectObject(vGlass, false)[0] : null;
+  if (vHit) mouseL.position.copy(vHit.point).addScaledVector(mRC.ray.direction, -0.8);
+  else mouseL.position.copy(mRC.ray.origin).addScaledVector(mRC.ray.direction, 4.4);
+  halo.visible = !modalOpen;
+  if (!modalOpen) halo.position.copy(mouseL.position);
+  halo.scale.setScalar(0.95 + Math.sin(now * 2.3) * 0.08);  // 光晕呼吸
+  const hue = clamp((ndc.x + 1) * 0.5, 0, 1);
+  mouseL.color.setHSL(0.52 + hue * 0.13, 0.85, 0.65);
+
+  // 透射光晕：鼠标光在玻璃后方时，光"穿过"玻璃体 → emissive 增强
+  // （鼠标未移入前 ndc 无效，保持 0，避免 V 被自发光填成色板）
+  if (hasMouse) {
+    const lightBehind = mouseL.position.z < vGlass.position.z;
+    const distToV = mouseL.position.distanceTo(vGlass.position);
+    const near = clamp(1 - distToV / 3.6, 0, 1);
+    // 穿透辉光：光源在玻璃后方时光"穿"过玻璃体
+    const tFactor = near * (lightBehind ? 1 : 0.3);
+    vGlass.material.emissiveIntensity = 0.06 + tFactor * 2.4;   // 微底光：背光不死黑，透射色彩让路
+    vGlass.material.emissive.setHSL(0.52, 0.16, 0.62);   // 近白光：真实玻璃不自带颜色
+    // 彩虹油膜随光源贴近浮现（掠射出彩，正对干净）
+    vGlass.material.iridescence = 0.12 + near * 0.5;
+  } else {
+    vGlass.material.emissiveIntensity = 0.06;
+    vGlass.material.iridescence = 0.12;
+  }
+
+  if (++sandFrame % 2 === 0) sandTex.needsUpdate = true;  // 纹理 30fps 节流
+
+  // ?perf=1：性能遥测（fps / draw calls / 三角形）——真机实测用
+  if (perfEl) {
+    perfFrames++;
+    const pt = performance.now();
+    if (pt - perfT0 >= 500) {
+      perfEl.textContent = 'fps: ' + (perfFrames * 1000 / (pt - perfT0)).toFixed(0) +
+        '\ndraw: ' + renderer.info.render.calls + '\ntri: ' + renderer.info.render.triangles;
+      perfFrames = 0; perfT0 = pt;
+    }
+  }
+
+  // 相机净零微摆（远景态呼吸）：缩得越远 / dock 越深幅度越大，输入后 2.5s 内静默。
+  // 渲染前叠加、渲染后撤销——跨帧净零，setZoom 读到的永远是基础位
+  {
+    const zt2 = (camera.position.z - LAY.zMin) / (LAY.zMax - LAY.zMin);
+    const amp = (now - lastCamInputAt > 2500) ? 0.02 + 0.055 * zt2 + 0.05 * dockBlend : 0;
+    _sway.set(Math.sin(now * 0.00105) * amp, Math.sin(now * 0.00073 + 1.3) * amp * 0.6, 0);
+    camera.position.add(_sway);
+  }
+  renderer.render(scene, camera);
+  camera.position.sub(_sway);
+  requestAnimationFrame(tick);
+}
+tick();
+
+// resize
+addEventListener('resize', () => {
+  renderer.setSize(innerWidth, innerHeight);
+  layout();
+});
+layout();
+</script>
+</body>
+</html>

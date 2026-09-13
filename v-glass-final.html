@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaan · 玻璃 V 与粒子星河（融合版）</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { background: #060910; overflow: hidden; height: 100%; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; color: #d8dce8; }
+  canvas { position: fixed; inset: 0; display: block; }
+
+  #brand { position: fixed; left: 50%; top: 6vh; transform: translateX(-50%);
+           z-index: 3; text-align: center; pointer-events: none; }
+  #brand .tag { font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .42em;
+                color: rgba(0,217,255,.7); margin-bottom: .6rem; }
+  #brand h1 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #f2f5fb;
+              letter-spacing: .06em; text-shadow: 0 4px 40px rgba(0,0,0,.7); }
+
+  #hint { position: fixed; left: 50%; bottom: 3.2vh; transform: translateX(-50%);
+          z-index: 3; font-size: .72rem; color: rgba(140,150,170,.55);
+          letter-spacing: .18em; pointer-events: none; }
+
+  #dots { position: fixed; left: 50%; bottom: 6.4vh; transform: translateX(-50%);
+          z-index: 3; display: flex; gap: 13px; }
+  #dots button { width: 28px; height: 28px; background: none; border: none; cursor: pointer;
+                 display: flex; align-items: center; justify-content: center; }
+  #dots button i { width: 7px; height: 7px; border-radius: 50%; background: rgba(160,170,190,.35);
+                   transition: all .35s cubic-bezier(.34,1.56,.64,1); }
+  #dots button.act i { background: rgba(0,217,255,.95); box-shadow: 0 0 12px rgba(0,217,255,.8);
+                       transform: scale(1.45); }
+
+  #modal { position: fixed; inset: 0; z-index: 200; background: rgba(4,6,11,.82);
+           backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+           display: none; align-items: center; justify-content: center; padding: 4vh 4vw; }
+  #modal.open { display: flex; }
+  .mbox { width: min(1200px, 96%); max-height: 90vh; background: rgba(9,13,26,.96);
+          border: 1px solid rgba(0,217,255,.25); border-radius: 20px; overflow: hidden;
+          display: grid; grid-template-columns: 1.3fr 1fr;
+          box-shadow: 0 40px 120px rgba(0,0,0,.75), 0 0 80px -20px rgba(0,217,255,.3);
+          transform: scale(.94) translateY(24px); opacity: 0;
+          transition: transform .45s cubic-bezier(.2,.9,.3,1.2), opacity .35s ease; }
+  #modal.open .mbox { transform: none; opacity: 1; }
+  .mbox video { width: 100%; height: 100%; object-fit: cover; background: #06080f; }
+  .mbox .md { padding: 2.4rem 2.6rem; overflow-y: auto; position: relative; }
+  .mbox .md h2 { color: #f2f5fb; font-size: 1.8rem; margin-bottom: .4rem; }
+  .mbox .md .mtag { font: .7rem/1 "SF Mono", Menlo, monospace; letter-spacing: .32em;
+                    color: rgba(0,217,255,.65); margin-bottom: 1.1rem; }
+  .mbox .md h4 { color: rgba(0,217,255,.9); font-size: .8rem; letter-spacing: .15em; margin: 1.6rem 0 .5rem; }
+  .mbox .md p { font-size: .92rem; line-height: 1.85; color: #aeb6c6; }
+  .mbox .md code { display: block; margin-top: .6rem; font: .8rem/1.9 "SF Mono", Menlo, monospace;
+                   color: #7fa8c8; background: rgba(0,217,255,.05);
+                   border: 1px solid rgba(0,217,255,.12); border-radius: 9px; padding: .7em .9em; }
+  .mbox .md .mfoot { margin-top: 2rem; display: flex; align-items: center; justify-content: space-between; }
+  .mbox .md .mfoot .link { color: #9fe8ff; text-decoration: none; font-size: .86rem;
+                           border: 1px solid rgba(0,217,255,.35); border-radius: 99px;
+                           padding: .45em 1.3em; transition: background .25s ease; }
+  .mbox .md .mfoot .link:hover { background: rgba(0,150,255,.22); }
+  .mbox .md .mfoot .esc { color: rgba(140,150,170,.55); font-size: .72rem; letter-spacing: .14em; }
+  #mClose { position: absolute; top: 18px; right: 22px; width: 38px; height: 38px;
+            border-radius: 50%; border: 1px solid rgba(255,255,255,.2);
+            background: rgba(255,255,255,.06); color: #dfe5f0; font-size: 16px; cursor: pointer; }
+  #mClose:hover { background: rgba(255,255,255,.14); }
+
+  #errbar { display: none; position: fixed; top: 0; left: 0; right: 0; z-index: 999;
+            background: #5a1a1a; color: #ffd9d9; font: 13px/1.8 monospace; padding: 10px 16px; }
+</style>
+<script>
+  window.addEventListener('error', function (e) {
+    var b = document.getElementById('errbar');
+    if (!b) return;
+    b.style.display = 'block';
+    b.textContent = '⚠ 加载错误: ' + (e.message || '') + ' @ ' + (e.filename || '').split('/').pop() + ':' + e.lineno;
+  });
+  window.addEventListener('unhandledrejection', function (e) {
+    var b = document.getElementById('errbar');
+    if (!b) return;
+    b.style.display = 'block';
+    b.textContent = '⚠ 模块加载失败: ' + (e.reason && e.reason.message ? e.reason.message : e.reason) +
+                    ' —— 请通过 http:// 打开（file:// 会拦截 ES 模块）';
+  });
+</script>
+</head>
+<body>
+
+<div id="brand">
+  <div class="tag">VAAN · GLASS MONOGRAM</div>
+  <h1>玻璃 V 与粒子星河</h1>
+</div>
+
+<div id="dots"></div>
+<div id="hint">拖拽旋转 · 滚轮推拉 · 点击卡牌深入</div>
+
+<div id="modal">
+  <div class="mbox">
+    <button id="mClose">✕</button>
+    <video id="mVideo" src="" muted loop playsinline></video>
+    <div class="md">
+      <div class="mtag" id="mTag">PROJECT</div>
+      <h2 id="mTitle"></h2>
+      <h4>工作原理</h4><p id="mHow"></p>
+      <h4>工程亮点</h4><p id="mHi"></p>
+      <h4>技术栈</h4><code id="mStack"></code>
+      <div class="mfoot">
+        <a class="link" href="https://github.com/VAAN0524" target="_blank" rel="noopener">查看项目 ↗</a>
+        <span class="esc">ESC 关闭</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="errbar"></div>
+
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.js", "three/addons/": "./vendor/examples/jsm/" } }
+</script>
+<script type="module">
+window.__MODULE_EXEC = 'module executed at ' + Date.now();
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+// ── 项目数据 ──
+const PROJECTS = [
+  { ic: '🤖', name: 'QQ-Claude-Proxy', desc: 'QQ 机器人远程操控本地 Claude Code CLI，代码不出本机。', tags: ['TypeScript', 'Node.js', 'Vitest'],
+    video: 'videos/qq-proxy-showcase.mp4',
+    how: 'QQ 消息 → 消息队列 → 本地 Claude Code CLI 执行 → 结果回传 QQ。手机发一条消息就能让 AI 改 bug、跑测试、提交代码。',
+    hi: 'watchdog 断线自愈 · 多会话隔离 · Vitest 完整测试体系', stack: 'TypeScript · Node.js · Vitest · QQ Bot API' },
+  { ic: '📊', name: '库存管理系统 ERP', desc: 'FIFO 批次成本核算 + 实时仪表盘，全栈独立完成。', tags: ['Go/Gin', 'Vue3/TS', 'WebSocket'],
+    video: 'videos/erp-showcase.mp4',
+    how: '采购/销售/库存三大模块，FIFO 批次成本核算引擎，WebSocket 实时推送，ECharts 实时仪表盘。',
+    hi: '净口径利润 · AI 录单 · MCP 直连 · 21 项单测', stack: 'Go/Gin · Vue3/TypeScript · PostgreSQL · Redis' },
+  { ic: '✨', name: 'Particle Painting', desc: '文字从烟雾流沙中聚拢成形——本站 Hero 即成果。', tags: ['Canvas', 'WebGL', '粒子'],
+    video: 'videos/particle-showcase.mp4',
+    how: '逐像素采样文字轮廓生成粒子目标点，零架构流沙 + 弹簧动力学驱动聚拢。',
+    hi: 'Beer-Lambert 光学模型 · 自适应采样 · 按需重建', stack: 'Canvas/WebGL · 粒子系统' },
+  { ic: '🟢', name: 'Slime 桌面宠物', desc: 'macOS 透明史莱姆：果冻渲染、表情系统、跳跃物理。', tags: ['PyObjC', 'CoreAnimation'],
+    video: 'videos/slime-showcase.mp4',
+    how: 'NSPanel 透明窗口 + CoreAnimation 果冻渲染，口语驱动表情与跳跃物理。',
+    hi: '实时口语驱动表情 · squash & stretch', stack: 'Python · PyObjC · CoreAnimation' },
+  { ic: '🧑‍🎤', name: '实时数字人管线', desc: 'Wav2Lip 唇形同步 + Qwen3-TTS 声音克隆 + GFPGAN 超分。', tags: ['Wav2Lip', 'TTS', 'RTMP'],
+    video: 'videos/digitalhuman-showcase.mp4',
+    how: '音频驱动 → Wav2Lip 唇形推理 → GFPGAN 超分 → RTMP 推流全链路，M1 Max 实时。',
+    hi: 'Qwen3-TTS 声音克隆 · MLX 推理优化', stack: 'Wav2Lip · Qwen3-TTS · GFPGAN · RTMP' },
+  { ic: '📐', name: 'DrawIO Scientific Illustrator', desc: '让 AI 在 draw.io 画布上实时绘制科研图，双 Server 架构。', tags: ['MCP', 'draw.io', 'AI'],
+    video: 'videos/drawio-showcase.mp4',
+    how: 'MCP 协议插件——AI 对话生成流程图、实验示意图、论文插图，直接落到 draw.io 画布。',
+    hi: '双 MCP Server 架构 · Win/macOS 支持', stack: 'MCP Protocol · TypeScript' },
+];
+
+// ── 渲染基础 ──
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(innerWidth, innerHeight);
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.3;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x0a0f1c);
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+
+const camera = new THREE.PerspectiveCamera(46, innerWidth / innerHeight, 0.1, 100);
+camera.position.set(0.9, 0.3, 7.6);
+camera.lookAt(0.9, -0.1, 0);
+
+// ── 灯光 ──
+scene.add(new THREE.AmbientLight(0x44506a, 1.1));
+const keyL = new THREE.DirectionalLight(0xcfe8ff, 2.4);
+keyL.position.set(-3.5, 4.5, 4.5);
+scene.add(keyL);
+const rimL = new THREE.DirectionalLight(0x6c5ce7, 1.4);
+rimL.position.set(3.5, -1, -3);
+scene.add(rimL);
+const mouseL = new THREE.PointLight(0x9fe8ff, 320, 26, 2);
+mouseL.position.set(0, 0.8, 4.6);
+scene.add(mouseL);
+const orb = new THREE.Mesh(new THREE.SphereGeometry(0.05, 16, 16),
+  new THREE.MeshBasicMaterial({ color: 0xbfeaff }));
+scene.add(orb);
+
+// ── 玻璃 V ──
+const vs = new THREE.Shape();
+vs.moveTo(-1.15, 1.25); vs.lineTo(-0.42, 1.25); vs.lineTo(0, 0.10);
+vs.lineTo(0.42, 1.25); vs.lineTo(1.15, 1.25); vs.lineTo(0.26, -1.25);
+vs.lineTo(-0.26, -1.25); vs.closePath();
+const vGeo = new THREE.ExtrudeGeometry(vs, {
+  depth: 0.5, bevelEnabled: true, bevelThickness: 0.08,
+  bevelSize: 0.07, bevelSegments: 5,
+});
+vGeo.center();
+const Q = new URLSearchParams(location.search);
+const MODE = Q.get('m') || 'glass';
+const MAT = {
+  normal: new THREE.MeshNormalMaterial(),
+  solid: new THREE.MeshPhysicalMaterial({ color: 0x4ac8ff, roughness: 0.1, metalness: 0.2, clearcoat: 1 }),
+  glass: new THREE.MeshPhysicalMaterial({
+    transmission: 1, thickness: 0.66, roughness: 0.07, ior: 1.5,
+    envMapIntensity: 0.6, dispersion: 1.2,
+    color: 0xffffff,
+    attenuationColor: new THREE.Color(0.35, 0.75, 1.0), attenuationDistance: 1.1,
+    iridescence: 0.15, iridescenceIOR: 1.3,
+  }),
+};
+const vGlass = new THREE.Mesh(vGeo, MAT[MODE] || MAT.glass);
+const vGroup = new THREE.Group();
+vGroup.add(vGlass);
+scene.add(vGroup);
+
+// 地面盘
+const disc = new THREE.Mesh(
+  new THREE.CircleGeometry(4.2, 56),
+  new THREE.MeshBasicMaterial({ color: 0x0a1018 })
+);
+disc.rotation.x = -Math.PI / 2;
+disc.position.y = -2.05;
+scene.add(disc);
+
+// ── 星河背景（不透明 → 进入折射缓冲，透过 V 可见）──
+const starN = 700;
+const starPos = new Float32Array(starN * 3);
+for (let i = 0; i < starN; i++) {
+  starPos[i*3]   = (Math.random() - 0.5) * 13;
+  starPos[i*3+1] = (Math.random() - 0.5) * 7;
+  starPos[i*3+2] = -1.5 - Math.random() * 4;
+}
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.BufferAttribute(starPos, 3));
+const stars = new THREE.Points(starGeo, new THREE.PointsMaterial({
+  color: 0xbfe8ff, size: 0.035, sizeAttenuation: true,
+}));
+scene.add(stars);
+
+// ── 卡牌卫星系统 ──
+function drawCard(p, lit) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 352;
+  const x = c.getContext('2d');
+  const g = x.createLinearGradient(0, 0, 512, 352);
+  if (lit) { g.addColorStop(0, 'rgba(0,95,170,.95)'); g.addColorStop(1, 'rgba(10,22,46,.96)'); }
+  else { g.addColorStop(0, 'rgba(30,50,86,.96)'); g.addColorStop(1, 'rgba(12,20,40,.96)'); }
+  x.fillStyle = g;
+  x.beginPath(); x.roundRect(0, 0, 512, 352, 22); x.fill();
+  x.strokeStyle = lit ? 'rgba(0,217,255,.9)' : 'rgba(0,217,255,.25)';
+  x.lineWidth = 3;
+  x.beginPath(); x.roundRect(2, 2, 508, 348, 22); x.stroke();
+  x.font = '50px serif'; x.fillStyle = '#e8f2ff';
+  x.fillText(p.ic, 30, 72);
+  x.fillStyle = '#f2f5fb'; x.font = '600 33px -apple-system, "PingFang SC", sans-serif';
+  x.fillText(p.name, 30, 130);
+  x.fillStyle = '#a6aec0'; x.font = '22px -apple-system, "PingFang SC", sans-serif';
+  let line = '', yy = 180;
+  for (const ch of p.desc) {
+    if (x.measureText(line + ch).width > 448) { x.fillText(line, 30, yy); line = ch; yy += 32; }
+    else line += ch;
+  }
+  x.fillText(line, 30, yy);
+  x.font = '17px -apple-system, sans-serif';
+  let tx = 30;
+  p.tags.forEach(t => {
+    const w = x.measureText(t).width + 24;
+    x.fillStyle = 'rgba(0,217,255,.09)';
+    x.beginPath(); x.roundRect(tx, 296, w, 32, 8); x.fill();
+    x.strokeStyle = 'rgba(0,217,255,.22)'; x.strokeRect(tx, 296, w, 32);
+    x.fillStyle = '#9fc0d8'; x.fillText(t, tx + 12, 318);
+    tx += w + 10;
+  });
+  if (lit) { x.fillStyle = '#9fe8ff'; x.font = '600 20px -apple-system, sans-serif'; x.fillText('点击深入 ↗', 368, 326); }
+  return c;
+}
+
+const orbit = new THREE.Group();
+orbit.rotation.x = 0.20;
+orbit.position.y = -0.3;
+scene.add(orbit);
+const ORBIT_R = 2.7, CW = 1.95, CH = 1.34;
+const cards = PROJECTS.map((p, i) => {
+  const tex = new THREE.CanvasTexture(drawCard(p, false));
+  tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  // 不透明材质 → 进入 transmission buffer，玻璃 V 才能折射背后的卡牌
+  const mat = new THREE.MeshBasicMaterial({ map: tex });
+  const g = new THREE.Group();
+  const front = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), mat);
+  const back = new THREE.Mesh(new THREE.PlaneGeometry(CW, CH), mat);
+  back.rotation.y = Math.PI;
+  g.add(front, back);
+  g.userData = { ang: i / PROJECTS.length * Math.PI * 2, i, p, tex, mat, lit: false };
+  orbit.add(g);
+  return g;
+});
+const texCache = new Map();
+function setLit(m, lit) {
+  const d = m.userData;
+  if (!!d.lit === lit) return;
+  d.lit = lit;
+  const key = (lit ? 'L' : 'N') + d.i;
+  let t = texCache.get(key);
+  if (!t) { t = new THREE.CanvasTexture(drawCard(d.p, lit)); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 4; texCache.set(key, t); }
+  d.mat.map = t;
+  d.mat.needsUpdate = true;
+}
+
+// ── 交互状态 ──
+const raycaster = new THREE.Raycaster();
+const ndc = new THREE.Vector2(9, 9);
+let orbAngle = 0, litI = -1, hoverM = null, dragging = false, dragX = 0;
+
+function openModal(i) {
+  const p = PROJECTS[i];
+  document.getElementById('mTitle').textContent = p.name;
+  document.getElementById('mHow').textContent = p.how;
+  document.getElementById('mHi').textContent = p.hi;
+  document.getElementById('mStack').textContent = p.stack;
+  const mv = document.getElementById('mVideo');
+  mv.src = p.video; mv.play().catch(() => {});
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal() {
+  document.getElementById('modal').classList.remove('open');
+  document.getElementById('mVideo').pause();
+}
+document.getElementById('mClose').addEventListener('click', closeModal);
+document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
+addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+// 交互事件
+const dom = renderer.domElement;
+dom.addEventListener('pointermove', e => {
+  ndc.x = (e.clientX / innerWidth) * 2 - 1;
+  ndc.y = -(e.clientY / innerHeight) * 2 + 1;
+  if (dragging) { orbAngle += (e.clientX - dragX) * 0.005; dragX = e.clientX; }
+});
+dom.addEventListener('pointerdown', e => { dragging = true; dragX = e.clientX; });
+addEventListener('pointerup', () => { dragging = false; });
+dom.addEventListener('click', () => {
+  raycaster.setFromCamera(ndc, camera);
+  const hit = raycaster.intersectObjects(cards, true)[0]?.object;
+  if (hit) openModal(hit.parent.userData.i);
+});
+dom.addEventListener('wheel', e => {
+  camera.position.z = clamp(camera.position.z + e.deltaY * 0.004, 4.8, 10);
+}, { passive: true });
+addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight') spinTo((litI < 0 ? 0 : litI) + 1);
+  if (e.key === 'ArrowLeft') spinTo((litI < 0 ? 0 : litI) + PROJECTS.length - 1);
+});
+function spinTo(i) { i %= PROJECTS.length; orbAngle = -i / PROJECTS.length * Math.PI * 2; }
+function clamp(v, a, b) { return Math.min(b, Math.max(a, v)); }
+
+// ── 主循环 ──
+const clock = new THREE.Clock();
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.05);
+  const now = clock.elapsedTime;
+  if (!dragging) orbAngle += dt * 0.12;
+
+  // 章节化旋转：拖拽/滚轮期间停自动公转
+  const camDir = new THREE.Vector3(0, 0, -1).applyQuaternion(camera.quaternion);
+  let bi = -1, bf = -2;
+  cards.forEach((m, i) => {
+    const wp = new THREE.Vector3(); m.getWorldPosition(wp);
+    const toC = wp.clone().sub(camera.position).normalize();
+    const f = toC.dot(camDir.clone().negate());
+    if (f > bf) { bf = f; bi = i; }
+  });
+  if (bi !== litI) {
+    litI = bi;
+    document.querySelectorAll('#dots button').forEach((d, k) => d.classList.toggle('act', k === litI));
+  }
+
+  // 卡位姿
+  const cyc = Math.floor(orbAngle / (Math.PI * 2));
+  for (const m of cards) {
+    const i = cards.indexOf(m);
+    const a = m.userData.ang + orbAngle;
+    m.position.set(Math.sin(a) * ORBIT_R, Math.sin(a*2) * 0.08, Math.cos(a) * ORBIT_R);
+    m.rotation.y = -a + Math.PI + Math.sin(now * 0.3 + i) * 0.3;
+  }
+
+  stars.rotation.y = now * 0.015;
+
+  // 点光跟随鼠标（射线反投影）
+  const mRC = new THREE.Raycaster();
+  mRC.setFromCamera(ndc, camera);
+  mouseL.position.copy(mRC.ray.origin).addScaledVector(mRC.ray.direction, 4.4);
+  orb.position.copy(mouseL.position);
+
+  renderer.render(scene, camera);
+  // 调试遥测
+  window.__vg = {
+    frames: (window.__vg?.frames || 0) + 1,
+    camPos: camera.position.toArray().map(v => +v.toFixed(2)),
+    camLook: (() => { const t = new THREE.Vector3(); camera.getWorldDirection(t); return t.toArray().map(v => +v.toFixed(2)); })(),
+    vWorld: vGlass.getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(2)),
+    vMat: vGlass.material.type,
+    cardsN: cards.length,
+    card0: cards[0].getWorldPosition(new THREE.Vector3()).toArray().map(v => +v.toFixed(2)),
+    drawCalls: renderer.info.render.calls,
+    triangles: renderer.info.render.triangles,
+  };
+  requestAnimationFrame(tick);
+}
+tick();
+
+// resize
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth, innerHeight);
+});
+</script>
+</body>
+</html>
