@@ -62,6 +62,25 @@
     </div>
   </div>
 
+  <h1 style="margin-top:4rem">功能验收 · 编辑与 RGBA</h1>
+  <p class="desc">官方功能实测：<b>多参考图合成</b>（渔夫+猫双参考，设定级一致性）与 <b>RGBA 透明图层</b>（alpha 0-255 全程，58% 全透明背景）。运行于 ComfyUI + GGUF Q4 底模 + Viggle turbo。</p>
+
+  <div class="card">
+    <a class="shot" href="images/aigallery/edit_multiref.jpg" target="_blank"><img src="images/aigallery/edit_multiref.jpg" alt="多参考合成" loading="lazy"></a>
+    <div class="info">
+      <div class="row"><span class="pill">1024×1024</span><span class="pill">双参考图</span><span class="pill">turbo 6 步</span><span class="pill">设定级一致性</span></div>
+      <div class="cap">多参考合成 —— 参考图1渔夫 + 参考图2橘猫 →「渔夫抱着猫」：主体设定延续（面孔相似非严格同人，官方承认的组合短板），构图与光影执行精确</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <a class="shot" href="images/aigallery/rgba_crown.png" target="_blank"><img src="images/aigallery/rgba_crown.png" alt="RGBA 透明背景皇冠" loading="lazy"></a>
+    <div class="info">
+      <div class="row"><span class="pill">768×768</span><span class="pill">turbo 6 步</span><span class="pill">RGBA alpha 0-255</span><span class="pill">58% 全透明</span></div>
+      <div class="cap">RGBA 透明图层 —— 官方提示词格式实测：alpha 通道全程保留，背景全透明 + 边缘半透明抗锯齿（深色页面即透明效果）</div>
+    </div>
+  </div>
+
   <div class="card">
     <a class="shot" href="images/aigallery/jet_exploded_8step.jpg" target="_blank"><img src="images/aigallery/jet_exploded_8step.jpg" alt="战斗机结构拆解图 8步" loading="lazy"></a>
     <div class="info">
