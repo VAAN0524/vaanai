@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vaan · AI 测试图相册</title>
+<meta name="description" content="Qwen-Image-2.1 + Viggle turbo LoRA 在 M1 Max（MLX 路线）的本地出图测试：战斗机拆解标注图、写实人像，中文标注零乱码。">
+<meta name="theme-color" content="#0a1220">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a1220; color: #d8dce8; font-family: -apple-system, "PingFang SC", sans-serif; min-height: 100vh; }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 6vh 5vw 10vh; }
+  .tagline { font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .42em; color: rgba(0,217,255,.7); margin-bottom: .6rem; }
+  h1 { font-size: clamp(1.5rem, 3vw, 2.2rem); font-weight: 700; color: #f2f5fb; letter-spacing: .06em; margin-bottom: .8rem; }
+  .desc { color: rgba(150,168,200,.75); font-size: .9rem; line-height: 1.7; margin-bottom: 3rem; max-width: 46rem; }
+  .desc b { color: rgba(0,217,255,.9); font-weight: 600; }
+  .card { background: rgba(255,255,255,.03); border: 1px solid rgba(255,255,255,.07); border-radius: 14px; overflow: hidden; margin-bottom: 2.2rem; }
+  .card a.shot { display: block; cursor: zoom-in; }
+  .card img { width: 100%; height: auto; display: block; }
+  .info { padding: 1rem 1.3rem 1.15rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: .7rem; }
+  .pill { font: .68rem/1 "SF Mono", Menlo, monospace; letter-spacing: .08em; color: rgba(0,217,255,.85);
+          background: rgba(0,217,255,.08); border: 1px solid rgba(0,217,255,.18); border-radius: 999px; padding: 4px 10px; }
+  .cap { font-size: .92rem; color: #e6eaf2; margin-bottom: .45rem; }
+  .prompt { font-size: .78rem; color: rgba(150,168,200,.72); line-height: 1.7; }
+  .prompt summary { cursor: pointer; color: rgba(0,217,255,.75); font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .1em; }
+  .prompt summary:hover { color: rgba(0,217,255,1); }
+  .prompt p { margin-top: .6rem; }
+  footer { margin-top: 4rem; text-align: center; }
+  footer a { font: .72rem/1 "SF Mono", Menlo, monospace; letter-spacing: .14em; color: rgba(150,168,200,.62); text-decoration: none; }
+  footer a:hover { color: rgba(0,217,255,.95); }
+  /* 灯箱 */
+  #lb { position: fixed; inset: 0; z-index: 50; background: rgba(4,6,11,.93); backdrop-filter: blur(10px);
+        display: none; align-items: center; justify-content: center; padding: 3vh 3vw; cursor: zoom-out; }
+  #lb.open { display: flex; }
+  #lb img { max-width: 100%; max-height: 100%; border-radius: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="tagline">AI IMAGE LAB</div>
+  <h1>测试图相册</h1>
+  <p class="desc">
+    本地部署 <b>Qwen-Image-2.1</b>（7.1B DiT，4bit MLX）+ <b>Viggle turbo</b> 蒸馏 LoRA，
+    在 M1 Max 上实测：1024×768 全流程 <b>98 秒</b>，1376×768 拆解图 6 步采样 98.8 秒。
+    重点测试<b>中文标注渲染</b>——两张拆解图 9 处中文字符串全部精确命中，零乱码。
+  </p>
+
+  <div class="card">
+    <a class="shot" href="images/aigallery/jet_exploded_8step.jpg" target="_blank"><img src="images/aigallery/jet_exploded_8step.jpg" alt="战斗机结构拆解图 8步" loading="lazy"></a>
+    <div class="info">
+      <div class="row"><span class="pill">1376×768</span><span class="pill">turbo 8 步</span><span class="pill">采样 131.6s</span><span class="pill">中文标注 9/9 全对</span></div>
+      <div class="cap">战斗机结构拆解图 —— 拆解细节与文字渲染压力测试（标题 + 7 个零件标签 + 编号全部精确命中）</div>
+      <details class="prompt"><summary>PROMPT ▾</summary>
+        <p>技术拆解图风格的精密工程插画，白色背景。一架现代隐形战斗机沿水平轴爆炸分解，零部件从左到右依次悬浮排列：机头雷达罩、座舱盖、前起落架、主翼、垂直尾翼、涡扇发动机、尾喷管。每个零部件用细灰色引线连接到黑色无衬线中文标注，标注文字从左到右依次为："雷达罩"、"座舱盖"、"前起落架"、"主翼"、"垂直尾翼"、"涡扇发动机"、"尾喷管"。图片顶部居中为大标题"战斗机结构拆解图"，右下角小字编号"FF-01"。扁平矢量技术插画，柔和投影，细节精密，像航空百科全书图版。</p>
+      </details>
+    </div>
+  </div>
+
+  <div class="card">
+    <a class="shot" href="images/aigallery/jet_exploded_6step.jpg" target="_blank"><img src="images/aigallery/jet_exploded_6step.jpg" alt="战斗机结构拆解图 6步" loading="lazy"></a>
+    <div class="info">
+      <div class="row"><span class="pill">1376×768</span><span class="pill">turbo 6 步</span><span class="pill">采样 98.8s</span><span class="pill">文字同样全对</span></div>
+      <div class="cap">同提示词 6 步对照 —— 文字渲染与 8 步无差，日常标注图 6 步足够</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <a class="shot" href="images/aigallery/turbo_1024x768_mlx.jpg" target="_blank"><img src="images/aigallery/turbo_1024x768_mlx.jpg" alt="渔夫写实人像" loading="lazy"></a>
+    <div class="info">
+      <div class="row"><span class="pill">1024×768</span><span class="pill">turbo 6 步</span><span class="pill">全流程 98.2s</span><span class="pill">峰值内存 7.3GB</span></div>
+      <div class="cap">写实人像基准图 —— 部署首跑：a studio portrait of an old fisherman mending a fishing net, warm rim light, 85mm lens</div>
+    </div>
+  </div>
+
+  <footer><a href="index.html">← BACK TO HOME</a></footer>
+</div>
+<div id="lb"><img src="" alt=""></div>
+<script>
+  const lb = document.getElementById('lb'), lbImg = lb.querySelector('img');
+  document.querySelectorAll('.shot').forEach(a => a.addEventListener('click', e => {
+    e.preventDefault(); lbImg.src = a.href; lb.classList.add('open');
+  }));
+  lb.addEventListener('click', () => lb.classList.remove('open'));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') lb.classList.remove('open'); });
+</script>
+</body>
+</html>
